@@ -1,26 +1,205 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #faf6ef;
+  --paper-2: #f3ece1;
+  --card: #fffdf9;
+  --ink: #1e1a15;
+  --ink-2: #5b5247;
+  --ink-3: #978b7c;
+  --line: #e7dfd2;
+  --accent: #c4552b;
+  --accent-2: #e59a2f;
+  --accent-soft: #f7e5d8;
+  --accent-ink: #ffffff;
+  --good: #2e8a57;
+  --good-soft: #dff1e6;
+  --warn: #b9800f;
+  --warn-soft: #f8ecd0;
+  --bad: #c53b3b;
+  --bad-soft: #f8dede;
+  --shadow: 30 20 10;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --paper: #13110f;
+  --paper-2: #1a1714;
+  --card: #1e1b18;
+  --ink: #f2ebe1;
+  --ink-2: #b9ae9f;
+  --ink-3: #7f766a;
+  --line: #2e2924;
+  --accent: #e27a4c;
+  --accent-2: #f0b04c;
+  --accent-soft: #33221a;
+  --accent-ink: #1a0f09;
+  --good: #5cc38a;
+  --good-soft: #17301f;
+  --warn: #e3b24c;
+  --warn-soft: #33290f;
+  --bad: #ee7474;
+  --bad-soft: #3a1a1a;
+  --shadow: 0 0 0;
+  color-scheme: dark;
+}
+
+/* Reader page themes */
+[data-reader="sepia"] {
+  --page: #f3e9d4;
+  --page-ink: #3b2e20;
+  --page-ink-2: #7a6650;
+}
+[data-reader="paper"] {
+  --page: var(--card);
+  --page-ink: var(--ink);
+  --page-ink-2: var(--ink-2);
+}
+[data-reader="night"] {
+  --page: #0e0d0c;
+  --page-ink: #d9d0c3;
+  --page-ink-2: #8d8376;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-page: var(--page);
+  --color-page-ink: var(--page-ink);
+  --color-page-ink-2: var(--page-ink-2);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-reading: var(--font-literata), ui-serif, Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 28%, transparent);
+}
+
+.shadow-soft {
+  box-shadow:
+    0 1px 2px rgb(var(--shadow) / 0.06),
+    0 8px 24px -8px rgb(var(--shadow) / 0.18);
+}
+.shadow-lift {
+  box-shadow:
+    0 2px 6px rgb(var(--shadow) / 0.1),
+    0 24px 48px -16px rgb(var(--shadow) / 0.35);
+}
+
+/* Horizontal shelves */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Grain on the paper background */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.25 0 0 0 .06 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  z-index: 0;
+}
+[data-theme="dark"] .grain::before {
+  mix-blend-mode: screen;
+  opacity: 0.12;
+}
+
+/* Words in the reader */
+.word {
+  border-radius: 0.3em;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+@media (hover: hover) {
+  .word:hover {
+    background: color-mix(in oklab, var(--accent) 16%, transparent);
+  }
+}
+.word[data-active="true"] {
+  background: color-mix(in oklab, var(--accent) 26%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 26%, transparent);
+}
+.word[data-speaking="line"] {
+  background: color-mix(in oklab, var(--accent-2) 16%, transparent);
+}
+.word[data-speaking="word"] {
+  background: color-mix(in oklab, var(--accent-2) 48%, transparent);
+}
+.word[data-mark="good"] {
+  color: var(--good);
+}
+.word[data-mark="bad"] {
+  color: var(--bad);
+  text-decoration: underline wavy color-mix(in oklab, var(--bad) 70%, transparent);
+  text-underline-offset: 0.22em;
+}
+.word[data-mark="skip"] {
+  color: var(--warn);
+  text-decoration: underline dotted;
+  text-underline-offset: 0.22em;
+}
+.word[data-saved="true"] {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--bad) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 18px transparent;
+  }
+}
+.recording-pulse {
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
