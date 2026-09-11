@@ -5,7 +5,7 @@ export const TOPICS: Topic[] = [
   { kind: "Everyday", text: "Describe your perfect Sunday from morning to night." },
   { kind: "Everyday", text: "What did you do yesterday? Walk me through your day." },
   { kind: "Everyday", text: "Describe the place where you grew up." },
-  { kind: "Everyday", text: "What is your favourite food, and how is it made?" },
+  { kind: "Everyday", text: "What is your favorite food, and how is it made?" },
   { kind: "Everyday", text: "Tell me about a festival you love and how you celebrate it." },
   { kind: "Everyday", text: "Describe your morning routine. What would you change about it?" },
   { kind: "Everyday", text: "What is the best trip you have ever taken?" },

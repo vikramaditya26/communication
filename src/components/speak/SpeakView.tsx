@@ -77,9 +77,8 @@ export function SpeakView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-8 sm:px-6 md:pt-14">
-      <div className="text-[13px] font-semibold uppercase tracking-[0.22em] text-accent">Speaking practice</div>
-      <h1 className="mt-3 font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1] tracking-tight">Speak on a topic</h1>
-      <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ink-2">Talk for a minute, the way you would in a real conversation. Then see your grammar fixes, better words, and how to structure your answer.</p>
+      <h1 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1] tracking-tight">Speak</h1>
+      <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ink-2">Pick a topic and talk about it for a minute. When you stop, you’ll see what to fix.</p>
 
       {!busy && cap.state !== "done" && (
         <div className="no-scrollbar -mx-4 mt-8 flex gap-2 overflow-x-auto px-4">
@@ -168,7 +167,7 @@ export function SpeakView() {
       {!busy && cap.state !== "done" && (
         <div className="mt-6 rounded-[28px] border border-dashed border-line p-5">
           <div className="flex items-center gap-2 text-sm font-medium">
-            <Lightbulb size={16} className="text-accent-2" /> Plan in 10 seconds: an opening, two points with an example, and a closing line.
+            <Lightbulb size={16} className="text-accent-2" /> Take a few seconds to plan. These phrases can help.
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
             {Object.entries(PHRASES).map(([k, list]) => (
@@ -260,10 +259,10 @@ export function SpeakView() {
               )}
 
               <div className="rounded-[28px] bg-ink p-5 text-paper">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60">How a fluent speaker might say it</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60">A better version of your answer</div>
                 <p className="mt-2 font-reading text-[17px] leading-relaxed">{d.polishedVersion}</p>
                 <div className="mt-4 [&_button]:bg-paper [&_button]:text-ink">
-                  <SpeakButton text={d.polishedVersion} label="Listen, then say it yourself" />
+                  <SpeakButton text={d.polishedVersion} label="Listen and repeat" />
                 </div>
               </div>
 

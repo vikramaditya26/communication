@@ -141,14 +141,14 @@ function WordHelp({ token, heardAs, book, page, voice, onClose }: { token: Token
         <div className="mt-4 flex items-center gap-2 rounded-2xl bg-bad-soft px-3.5 py-2.5 text-sm">
           <Ear size={16} className="shrink-0 text-bad" />
           <span>
-            When you read, I heard <b>“{heardAs}”</b>.
+            When you read it, it sounded like <b>“{heardAs}”</b>.
           </span>
         </div>
       )}
 
       {(d?.sayItLike || coach.loading) && (
         <div className="mt-4 rounded-2xl bg-accent-soft px-4 py-3">
-          <SectionLabel className="!mb-1 text-accent/80">Say it like</SectionLabel>
+          <SectionLabel className="!mb-1 text-accent/80">Sounds like</SectionLabel>
           {d ? <div className="font-display text-[26px] leading-tight tracking-wide text-accent">{d.sayItLike}</div> : <Skeleton className="h-7 w-40 bg-accent/15" />}
         </div>
       )}
@@ -180,7 +180,7 @@ function WordHelp({ token, heardAs, book, page, voice, onClose }: { token: Token
           )}
           {d.example && (
             <div>
-              <SectionLabel>Use it today</SectionLabel>
+              <SectionLabel>Example</SectionLabel>
               <div className="font-reading italic">“{d.example}”</div>
               <div className="mt-2">
                 <SpeakButton text={d.example} label="Hear example" variant="ghost" />
@@ -189,7 +189,7 @@ function WordHelp({ token, heardAs, book, page, voice, onClose }: { token: Token
           )}
           {d.synonyms.length > 0 && (
             <div>
-              <SectionLabel>Other words you can use</SectionLabel>
+              <SectionLabel>Similar words</SectionLabel>
               <div className="flex flex-wrap gap-1.5">
                 {d.synonyms.map((s) => (
                   <span key={s} className="rounded-full border border-line px-3 py-1 text-sm">

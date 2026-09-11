@@ -77,9 +77,9 @@ export function RetellPanel({ book, page, pageText, saveAudio }: { book: Library
       {(state === "idle" || state === "error" || tooShort) && (
         <div className="rounded-3xl bg-gradient-to-br from-accent-soft via-accent-soft/40 to-transparent p-5">
           <MessageSquareText className="text-accent" size={24} />
-          <div className="mt-3 font-display text-2xl leading-tight">Explain it in your own words</div>
+          <div className="mt-3 font-display text-2xl leading-tight">Retell this page</div>
           <p className="mt-2 text-sm leading-relaxed text-ink-2">
-            Without looking, tell me what this page is about. Speak for 30 to 90 seconds. You’ll get corrections for your grammar and better words to use.
+            Without looking at the text, say what this page was about in your own words. Half a minute to a minute is plenty.
           </p>
           {state === "error" && cap.error && <div className="mt-3 rounded-2xl bg-bad-soft p-3 text-sm">{cap.error}</div>}
           {tooShort && <div className="mt-3 rounded-2xl bg-warn-soft p-3 text-sm">That was very short. Try saying at least two or three sentences.</div>}
@@ -122,10 +122,10 @@ export function RetellPanel({ book, page, pageText, saveAudio }: { book: Library
                 </div>
               )}
               <div className="rounded-3xl bg-ink p-4 text-paper">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60">A polished version</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60">A better way to say it</div>
                 <p className="mt-2 font-reading text-[16px] leading-relaxed">{coach.data.polishedVersion}</p>
                 <div className="mt-3 [&_button]:bg-paper [&_button]:text-ink">
-                  <SpeakButton text={coach.data.polishedVersion} label="Listen, then repeat it" />
+                  <SpeakButton text={coach.data.polishedVersion} label="Listen and repeat" />
                 </div>
               </div>
               <div className="rounded-2xl bg-accent-soft p-3.5 text-sm">

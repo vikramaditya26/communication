@@ -1,15 +1,14 @@
 # Vaani
 
-Read the books Osho loved, out loud, and improve your English as you go.
+A reading app for practicing English. It has 101 free books, including the ones Osho talks about in *Books I Have Loved*.
 
-- **Library**: 101 free public-domain books. 50 are from Osho's *Books I Have Loved*; the rest are more books by the same authors.
-- **Reader**: tap any word for its meaning, pronunciation and example. Select a sentence to have its grammar explained. Get a summary and a simple explanation of any page.
-- **Read aloud**: read a page and every word turns green (clear) or red (sounded like a different word). Tap a red word to hear and practise it.
-- **Retell**: explain the page in your own words and get grammar fixes and better word choices.
-- **Speak**: talk about a random topic for 30–90 seconds and get feedback on grammar, vocabulary, structure and filler words.
-- **Review**: saved words and corrections come back with spaced repetition.
+- **Reader**: tap a word to hear it and see what it means. Select a sentence to have it explained. Ask for a summary of any page.
+- **Read out loud**: read a page and each word turns green if it was clear, or red if it sounded like a different word.
+- **Retell**: say what the page was about in your own words and get your grammar corrected.
+- **Speak**: talk about a topic for a minute and get feedback.
+- **Review**: words and corrections you saved come back as flashcards.
 
-Reading progress, saved words and recordings are stored in your browser (IndexedDB) on each device.
+Progress, saved words and recordings are stored in the browser on each device.
 
 ## Run it on your Mac
 
@@ -23,32 +22,40 @@ Then:
 
 ```bash
 npm install
-cp .env.example .env.local   # then add your ANTHROPIC_API_KEY
+cp .env.example .env.local   # then add a key (see below)
 npm run dev
 ```
 
-Open http://localhost:3000. Use **Google Chrome** for the microphone features.
+Open http://localhost:3000 in Chrome. Chrome is needed for the microphone features.
 
-Everything except the AI coach works without an API key: reading, listening, word colours when you read aloud, dictionary meanings, and Review.
+## AI help
 
-## The AI coach
+Reading, listening, the word colors and the dictionary all work without a key. The AI explanations and feedback need one of these:
 
-The coach uses the Claude API (`claude-opus-5` by default). A Claude Pro subscription does **not** include API access. Create a key at https://console.anthropic.com and add credit. Word explanations and page summaries are cached in the browser, so each is only paid for once.
+| Service | Cost | Where to get a key | Variable |
+| --- | --- | --- | --- |
+| Google Gemini | Free (daily limit) | https://aistudio.google.com/apikey | `GEMINI_API_KEY` |
+| Groq | Free (daily limit) | https://console.groq.com/keys | `GROQ_API_KEY` |
+| Claude | Paid | https://console.anthropic.com | `ANTHROPIC_API_KEY` |
+| Anything OpenAI-compatible | Varies | | `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` |
+
+Gemini is the one to start with. Adding a Groq key as well gives you a backup for when Gemini's free limit runs out. On Google's free tier, what you send may be used to improve their products.
+
+Answers to word lookups and page summaries are saved in the browser, so asking again doesn't use up requests.
 
 ## Put it online (Vercel)
 
-1. Push this repo to GitHub.
-2. On https://vercel.com, import the repo (framework: Next.js, no settings to change).
-3. In **Settings → Environment Variables**, add `ANTHROPIC_API_KEY` and `APP_PASSWORD`.
-4. Deploy. The first time you use the coach, the site will ask for the password.
+1. Import this repo on https://vercel.com.
+2. In **Settings → Environment Variables**, add `GEMINI_API_KEY` (and `APP_PASSWORD` so only you can use it).
+3. Redeploy. Environment variables only take effect after a new deployment.
 
-## Rebuilding the books
+## Changing the books
 
-Books are already built into `public/books` and `src/data/library.json`. To change the list, edit `scripts/catalog.mjs`, then run:
+The books are already built into `public/books` and `src/data/library.json`. To change the list, edit `scripts/catalog.mjs` and run:
 
 ```bash
 node scripts/build-books.mjs              # all books
-node scripts/build-books.mjs gitanjali    # just one
+node scripts/build-books.mjs gitanjali    # one book
 ```
 
-Sources: [Standard Ebooks](https://standardebooks.org) (text and cover art, CC0) and [Project Gutenberg](https://www.gutenberg.org).
+Books come from [Standard Ebooks](https://standardebooks.org) and [Project Gutenberg](https://www.gutenberg.org).

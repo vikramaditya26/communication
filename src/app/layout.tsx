@@ -7,8 +7,8 @@ const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", axe
 const literata = Literata({ subsets: ["latin"], variable: "--font-literata", style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
-  title: { default: "Vaani · Read aloud, speak better", template: "%s · Vaani" },
-  description: "Read the books Osho loved, practise pronunciation, and learn words and grammar as you go.",
+  title: { default: "Vaani", template: "%s · Vaani" },
+  description: "Read books out loud and practice your English.",
   appleWebApp: { title: "Vaani", statusBarStyle: "default" },
 };
 

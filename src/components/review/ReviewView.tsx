@@ -45,9 +45,8 @@ export function ReviewView() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-8 sm:px-6 md:pt-14">
-      <div className="text-[13px] font-semibold uppercase tracking-[0.22em] text-accent">Remember what you learn</div>
-      <h1 className="mt-3 font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1] tracking-tight">Review</h1>
-      <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ink-2">Words, sounds and corrections you saved come back just before you would forget them. A few minutes a day is enough.</p>
+      <h1 className="font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1] tracking-tight">Review</h1>
+      <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ink-2">Words and corrections you saved show up here again, so you don’t forget them. A few minutes a day is enough.</p>
 
       {session ? (
         <Session ids={session} items={items} onGraded={() => setDoneCount((n) => n + 1)} done={doneCount} onExit={() => setSession(null)} />
@@ -124,9 +123,9 @@ function Session({ ids, items, done, onGraded, onExit }: { ids: string[]; items:
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", damping: 10, stiffness: 180, delay: 0.1 }} className="flex h-20 w-20 items-center justify-center rounded-full bg-good text-white">
           <Check size={40} strokeWidth={3} />
         </motion.div>
-        <div className="mt-6 font-display text-3xl">Well done!</div>
+        <div className="mt-6 font-display text-3xl">That’s all for now</div>
         <p className="mt-2 text-ink-2">
-          You reviewed {done} {done === 1 ? "card" : "cards"}. See you tomorrow.
+          You reviewed {done} {done === 1 ? "card" : "cards"}.
         </p>
         <Button className="mt-6" variant="outline" onClick={onExit}>
           Back to Review
@@ -276,7 +275,7 @@ function SavedList({ items, now }: { items: SavedItem[]; now: number }) {
   return (
     <section className="mt-12">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-display text-2xl">Everything you saved</h2>
+        <h2 className="font-display text-2xl">Saved</h2>
         <label className="relative flex items-center sm:w-64">
           <Search size={15} className="absolute left-3.5 text-ink-3" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search" className="h-10 w-full rounded-full border border-line bg-card pl-10 pr-4 text-sm outline-none focus:border-accent" />

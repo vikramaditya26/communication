@@ -315,7 +315,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
               </button>
             </nav>
           )}
-          <p className="mt-6 hidden text-center font-sans text-xs text-ink-3 lg:block">Click a word for meaning and pronunciation · select a sentence to explain it · ← → to turn pages</p>
+          <p className="mt-6 hidden text-center font-sans text-xs text-ink-3 lg:block">Click a word to hear it · select a sentence to have it explained · use ← → to turn pages</p>
         </article>
 
         <aside className="hidden border-l border-line/70 bg-card lg:block">
@@ -358,7 +358,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
               <motion.div key="dock" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} className="mx-auto max-w-md">
                 {ra.result && mobilePanel !== "read" && (
                   <button onClick={() => setMobilePanel("read")} className="mx-auto mb-2 flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-paper shadow-lift">
-                    <AudioLines size={15} /> {Math.round(ra.result.accuracy)}% clear · see your words
+                    <AudioLines size={15} /> {Math.round(ra.result.accuracy)}% clear · see results
                   </button>
                 )}
                 <div className="flex items-center gap-1.5 rounded-full border border-line bg-card/90 p-1.5 shadow-lift backdrop-blur-xl">
