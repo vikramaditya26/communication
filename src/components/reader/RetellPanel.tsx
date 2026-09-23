@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CoachTasks, Correction } from "@/lib/coach";
 import { useCoach } from "@/lib/coach-client";
-import { bumpToday, recordingKey, saveItem, useStoredList, write, type Recording, type SavedItem } from "@/lib/store";
+import { bumpToday, logAttempt, recordingKey, saveItem, useStoredList, write, type Recording, type SavedItem } from "@/lib/store";
 import { formatClock, useSpeechCapture } from "@/lib/useSpeechCapture";
 import type { LibraryBook } from "@/lib/types";
 import { AudioPlayback, BetterWords, CoachNotice, Corrections, ScoreRing, SectionLabel, SpeakButton } from "../coach/Feedback";
@@ -47,6 +47,12 @@ export function RetellPanel({ book, page, pageText, saveAudio }: { book: Library
 
   const state = capPage === page ? cap.state : "idle";
   const coach = useCoach("retell", asked && asked.page === page ? asked.input : null, { auto: true });
+  const loggedFor = useRef<unknown>(null);
+  useEffect(() => {
+    if (!coach.data || loggedFor.current === coach.data) return;
+    loggedFor.current = coach.data;
+    logAttempt({ kind: "retell", score: coach.data.understandingScore * 20, label: `${book.title}, page ${page + 1}` });
+  }, [coach.data, book.title, page]);
   const [savedList] = useStoredList<SavedItem>("saved:grammar-");
   const savedTexts = useMemo(() => new Set(savedList.map((s) => s.text)), [savedList]);
 

@@ -83,7 +83,8 @@ export function useShadow({ book, page, model, rate, voice }: { book: LibraryBoo
   const finishPage = useCallback(() => {
     const { current, chunks, book, page } = latest.current;
     const done = Object.values(current.results);
-    if (logged.current || done.length < Math.min(3, chunks.length)) return;
+    // Only count a page once, and only if at least a few pieces were actually shadowed.
+    if (logged.current || !done.length || done.length < Math.min(3, chunks.length)) return;
     logged.current = true;
     const avg = done.reduce((n, r) => n + r.score, 0) / done.length;
     logAttempt({ kind: "shadow", score: Math.round(avg), seconds: Math.round(spokenMs.current / 1000), label: `${book.title}, page ${page + 1}` });

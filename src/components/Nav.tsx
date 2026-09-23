@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Ear, Layers, Library, Mic, Moon, Sun } from "lucide-react";
+import { ChartLine, Ear, Layers, Library, Mic, Moon, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/speak", label: "Speak", icon: Mic },
   { href: "/sounds", label: "Sounds", icon: Ear },
   { href: "/review", label: "Review", icon: Layers },
+  { href: "/progress", label: "Progress", icon: ChartLine },
 ];
 
 export function Logo({ className }: { className?: string }) {

@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { CoachTasks, Correction } from "@/lib/coach";
 import { useCoach } from "@/lib/coach-client";
-import { bumpToday, recordingKey, remove, saveItem, useStoredList, write, type Recording, type SavedItem } from "@/lib/store";
+import { bumpToday, logAttempt, recordingKey, remove, saveItem, useStoredList, write, type Recording, type SavedItem } from "@/lib/store";
 import { TOPIC_KINDS, TOPICS, type Topic } from "@/lib/topics";
 import { formatClock, useSpeechCapture } from "@/lib/useSpeechCapture";
 import { AudioPlayback, BetterWords, CoachNotice, Corrections, ScoreRing, SectionLabel, SpeakButton } from "../coach/Feedback";
@@ -74,6 +74,14 @@ export function SpeakView() {
   const busy = cap.state === "listening" || cap.state === "stopping";
   const progress = Math.min(1, cap.elapsed / (seconds * 1000));
   const d = coach.data;
+  // Keep each scored answer for the Progress page.
+  const loggedFor = useRef<unknown>(null);
+  useEffect(() => {
+    if (!d || loggedFor.current === d) return;
+    loggedFor.current = d;
+    const s = d.scores;
+    logAttempt({ kind: "topic", score: Math.round(((s.grammar + s.vocabulary + s.structure + s.fluency) / 4) * 10), seconds: input?.seconds, detail: s, label: input?.topic });
+  }, [d, input]);
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-8 sm:px-6 md:pt-14">

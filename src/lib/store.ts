@@ -267,6 +267,7 @@ export type Attempt = {
 };
 
 export async function logAttempt(a: Omit<Attempt, "at">) {
+  if (a.score !== undefined && !Number.isFinite(a.score)) delete a.score;
   const at = Date.now();
   await write<Attempt>(`attempt:${at}-${Math.random().toString(36).slice(2, 6)}`, { ...a, at });
 }
@@ -307,4 +308,21 @@ export function useDays(count: number) {
     };
   }, [count]);
   return days;
+}
+
+/** Live [key, value] pairs for a prefix. */
+export function useEntries<T>(prefix: string) {
+  const [items, setItems] = useState<[string, T][]>([]);
+  useEffect(() => {
+    let alive = true;
+    const load = () => readEntries<T>(prefix).then((v) => alive && setItems(v));
+    load();
+    const onChange = (e: Event) => String((e as CustomEvent).detail).startsWith(prefix) && load();
+    window.addEventListener(CHANGE, onChange);
+    return () => {
+      alive = false;
+      window.removeEventListener(CHANGE, onChange);
+    };
+  }, [prefix]);
+  return items;
 }
