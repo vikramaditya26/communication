@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, Literata } from "next/font/google";
+import { PwaSetup } from "@/components/PwaSetup";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -9,7 +10,8 @@ const literata = Literata({ subsets: ["latin"], variable: "--font-literata", sty
 export const metadata: Metadata = {
   title: { default: "Vaani · Read aloud, speak better", template: "%s · Vaani" },
   description: "Read the books Osho loved, practise pronunciation, and learn words and grammar as you go.",
-  appleWebApp: { title: "Vaani", statusBarStyle: "default" },
+  appleWebApp: { title: "Vaani", statusBarStyle: "default", capable: true },
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
@@ -36,7 +38,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <PwaSetup />
+      </body>
     </html>
   );
 }

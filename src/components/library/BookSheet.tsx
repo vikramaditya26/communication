@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { BookOpen, ChevronDown, Clock, ExternalLink, List, Sparkles } from "lucide-react";
+import { BookOpen, Check, ChevronDown, Clock, CloudDownload, ExternalLink, List, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -9,6 +9,7 @@ import { formatHours } from "@/lib/library";
 import type { Progress } from "@/lib/store";
 import type { BookIndex, LibraryBook } from "@/lib/types";
 import { loadIndex } from "@/lib/useBook";
+import { isBookOffline, removeBookOffline, saveBookOffline } from "@/lib/pwa";
 import { Cover } from "../Cover";
 import { Sheet } from "../ui";
 
@@ -106,6 +107,7 @@ function BookDetails({ book: b, progress }: { book: LibraryBook; progress?: Prog
               <List size={17} /> Contents
               <ChevronDown size={16} className={clsx("transition", showToc && "rotate-180")} />
             </button>
+            {index && <OfflineButton book={b} index={index} />}
           </div>
           {started && (
             <div className="mt-4 flex items-center gap-3 text-xs text-ink-3">
@@ -157,5 +159,54 @@ function BookDetails({ book: b, progress }: { book: LibraryBook; progress?: Prog
         Free edition from {source} <ExternalLink size={12} />
       </a>
     </div>
+  );
+}
+
+function OfflineButton({ book, index }: { book: LibraryBook; index: BookIndex }) {
+  const chunks = Math.ceil(index.pages / index.chunk);
+  const [state, setState] = useState<"checking" | "no" | "saving" | "yes" | "error">("checking");
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    isBookOffline(book.slug, chunks).then((yes) => alive && setState(yes ? "yes" : "no"));
+    return () => {
+      alive = false;
+    };
+  }, [book.slug, chunks]);
+
+  if (state === "checking" || typeof caches === "undefined") return null;
+
+  const save = async () => {
+    setState("saving");
+    try {
+      await saveBookOffline(book.slug, index.pages, index.chunk, book.cover, (done, total) => setProgress(done / total));
+      setState("yes");
+    } catch {
+      setState("error");
+    }
+  };
+
+  if (state === "yes") {
+    return (
+      <button
+        onClick={() => removeBookOffline(book.slug).then(() => setState("no"))}
+        title="Saved on this device. Click to remove."
+        className="group inline-flex h-12 items-center gap-2 rounded-full bg-good-soft px-5 text-[15px] font-medium text-good"
+      >
+        <Check size={17} /> <span className="group-hover:hidden">Saved for offline</span>
+        <span className="hidden group-hover:inline">Remove download</span>
+      </button>
+    );
+  }
+  return (
+    <button
+      onClick={state === "saving" ? undefined : save}
+      className="relative inline-flex h-12 items-center gap-2 overflow-hidden rounded-full border border-line bg-card px-5 text-[15px] font-medium transition hover:border-ink-3"
+    >
+      {state === "saving" && <span className="absolute inset-y-0 left-0 bg-accent-soft transition-all" style={{ width: `${progress * 100}%` }} />}
+      <CloudDownload size={17} className="relative" />
+      <span className="relative">{state === "saving" ? `Saving ${Math.round(progress * 100)}%` : state === "error" ? "Try again" : "Save for offline"}</span>
+    </button>
   );
 }

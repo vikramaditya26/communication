@@ -1,13 +1,14 @@
 "use client";
 
 import clsx from "clsx";
-import { ChartLine, Ear, Layers, Library, Mic, Moon, Sun } from "lucide-react";
+import { ChartLine, Download, Ear, Layers, Library, Mic, Moon, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { useStoredList, type SavedItem } from "@/lib/store";
 import { useNow } from "@/lib/useNow";
+import { useInstallPrompt } from "@/lib/pwa";
 
 const LINKS = [
   { href: "/", label: "Library", icon: Library },
@@ -64,6 +65,21 @@ export function ThemeToggle() {
   );
 }
 
+function InstallButton() {
+  const { canInstall, install } = useInstallPrompt();
+  if (!canInstall) return null;
+  return (
+    <motion.button
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      onClick={install}
+      className="inline-flex h-9 items-center gap-1.5 rounded-full bg-accent px-3.5 text-[13px] font-medium text-accent-ink shadow-soft active:scale-95"
+    >
+      <Download size={15} /> Install app
+    </motion.button>
+  );
+}
+
 function useDueCount() {
   const [items] = useStoredList<SavedItem>("saved:");
   const now = useNow();
@@ -98,7 +114,10 @@ export function Nav() {
               </Link>
             ))}
           </nav>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <InstallButton />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
