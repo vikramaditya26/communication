@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Layers, Library, Mic, Moon, Sun } from "lucide-react";
+import { Ear, Layers, Library, Mic, Moon, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -12,6 +12,7 @@ import { useNow } from "@/lib/useNow";
 const LINKS = [
   { href: "/", label: "Library", icon: Library },
   { href: "/speak", label: "Speak", icon: Mic },
+  { href: "/sounds", label: "Sounds", icon: Ear },
   { href: "/review", label: "Review", icon: Layers },
 ];
 

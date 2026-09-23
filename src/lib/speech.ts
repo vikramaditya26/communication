@@ -22,29 +22,26 @@ const NUMBERS: Record<string, string> = {
   "10": "ten", "11": "eleven", "12": "twelve", "20": "twenty", "100": "hundred", "1000": "thousand",
 };
 
+// British and American spellings of the same word ("colour"/"color", "realise"/"realize").
+const canonical = (w: string) =>
+  w
+    .replace(/our(s?)$/, "or$1")
+    .replace(/is(e|ed|es|ing)$/, "iz$1")
+    .replace(/tre(s?)$/, "ter$1")
+    .replace(/ll(ed|ing|er)$/, "l$1")
+    .replace(/'/g, "");
+
 function similar(a: string, b: string) {
   if (a === b) return true;
   if (NUMBERS[a] === b || NUMBERS[b] === a) return true;
-  if (a.replace(/'/g, "") === b.replace(/'/g, "")) return true;
-  if (a.length < 4 || b.length < 4) return false;
-  // Allow one small slip in longer words (British vs American spelling, plurals).
-  const d = editDistance(a, b);
-  return d <= (Math.max(a.length, b.length) >= 8 ? 2 : 1);
+  const x = canonical(a), y = canonical(b);
+  if (x === y) return true;
+  // Only forgive a different ending ("walk"/"walks"/"walked"). A different sound inside
+  // the word ("vest"/"west", "ship"/"sheep") is exactly the mistake we want to catch.
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x];
+  return short.length >= 4 && long.startsWith(short) && long.length - short.length <= 2;
 }
 
-function editDistance(a: string, b: string) {
-  const dp = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    let prev = dp[0];
-    dp[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const tmp = dp[j];
-      dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prev = tmp;
-    }
-  }
-  return dp[b.length];
-}
 
 export const wordsMatch = (a: string, b: string) => similar(normalizeWord(a), normalizeWord(b));
 
@@ -262,3 +259,27 @@ export function speak(
 }
 
 export const stopSpeaking = () => typeof speechSynthesis !== "undefined" && speechSynthesis.cancel();
+
+/** Listens for one short answer (a word or two). Resolves with what was heard, or "" after `maxMs`. */
+export function listenOnce(maxMs = 4000): Promise<string> {
+  return new Promise((resolve) => {
+    let heard = "";
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(heard.trim());
+    };
+    const l = listen({
+      onText: (finalText, interim) => {
+        heard = `${finalText} ${interim}`.trim();
+        if (finalText) l?.stop();
+      },
+      onError: finish,
+      onEnd: finish,
+    });
+    if (!l) return finish();
+    const timer = setTimeout(() => l.stop(), maxMs);
+  });
+}
