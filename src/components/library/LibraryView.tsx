@@ -6,7 +6,8 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { CATEGORIES } from "@/lib/library";
-import { dayKey, read, useStoredList, type Day, type Progress, type SavedItem } from "@/lib/store";
+import { streakOf, useDays, useStoredList, type Progress, type SavedItem } from "@/lib/store";
+import { useNow } from "@/lib/useNow";
 import type { LibraryBook } from "@/lib/types";
 import { Cover } from "../Cover";
 import { Chip } from "../ui";
@@ -226,28 +227,12 @@ function Hero({ books, onOpen }: { books: LibraryBook[]; onOpen: (b: LibraryBook
 }
 
 function TodayStrip() {
-  const [days] = useStoredList<Day>("day:");
+  const days = useDays(120);
   const [saved] = useStoredList<SavedItem>("saved:");
-  const [{ streak, today, due }, setStats] = useState<{ streak: number; today?: Day; due: number }>({ streak: 0, due: 0 });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const recent = await Promise.all(
-        Array.from({ length: 90 }, (_, i) => read<Day>(dayKey(new Date(Date.now() - i * 86_400_000).toLocaleDateString("en-CA")))),
-      );
-      if (cancelled) return;
-      const active = (d?: Day) => Boolean(d && d.pages + d.saved + d.spoken + d.reviewed > 0);
-      let count = 0;
-      // Today doesn't break the streak until the day is over.
-      for (let i = active(recent[0]) ? 0 : 1; i < recent.length && active(recent[i]); i++) count++;
-      const now = Date.now();
-      setStats({ streak: count, today: recent[0], due: saved.filter((s) => s.due <= now).length });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [days, saved]);
+  const now = useNow();
+  const streak = streakOf(days);
+  const today = days[0]?.day;
+  const due = now ? saved.filter((s) => s.due <= now).length : 0;
 
   const stats = [
     { icon: Flame, label: "Day streak", value: streak, tint: "text-accent" },

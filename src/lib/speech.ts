@@ -72,8 +72,13 @@ export function alignReading(expected: string[], heardText: string): WordMark[] 
       else { cost[i][j] = left; move[i][j] = 3; }
     }
   }
-  const marks: WordMark[] = new Array(n);
-  let i = n, j = m;
+  // The learner reads from the start but may not have reached the end yet, so the words
+  // after the point they reached are free: pick the end point that fits what was heard best.
+  // On a tie, the earlier point wins (people read from the start).
+  let end = 0;
+  for (let k = 1; k <= n; k++) if (cost[k][m] < cost[end][m]) end = k;
+  const marks: WordMark[] = new Array(n).fill(null).map(() => ({ mark: "skip", heard: "__unread" }) as WordMark);
+  let i = end, j = m;
   while (i > 0 || j > 0) {
     const mv = move[i][j];
     if (i > 0 && j > 0 && mv === 1) {

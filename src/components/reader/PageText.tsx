@@ -55,11 +55,12 @@ type Props = {
   marks: WordMark[] | null;
   activeIndex: number | null;
   speaking: { from: number; to: number; word: number | null } | null;
+  cursor?: number | null;
   savedWords: Set<string>;
   onWord: (index: number, rect: DOMRect) => void;
 };
 
-export const PageText = memo(function PageText({ model, marks, activeIndex, speaking, savedWords, onWord }: Props) {
+export const PageText = memo(function PageText({ model, marks, activeIndex, speaking, cursor, savedWords, onWord }: Props) {
   const handleClick = (e: MouseEvent<HTMLDivElement>) => {
     const sel = window.getSelection();
     if (sel && !sel.isCollapsed) return;
@@ -81,6 +82,7 @@ export const PageText = memo(function PageText({ model, marks, activeIndex, spea
         data-mark={mark}
         data-active={activeIndex === i || undefined}
         data-speaking={spk}
+        data-cursor={cursor === i || undefined}
         data-saved={savedWords.has(t.clean.toLowerCase()) || undefined}
       >
         {t.text}

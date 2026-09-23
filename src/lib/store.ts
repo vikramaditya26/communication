@@ -8,7 +8,44 @@ import { useCallback, useEffect, useState } from "react";
 import { refreshNow } from "./useNow";
 
 let store: UseStore | undefined;
+let metaStore: UseStore | undefined;
 const db = () => (store ??= createStore("communication", "kv"));
+// When each key last changed, so two devices can be merged (see sync.ts).
+const metaDb = () => (metaStore ??= createStore("communication-meta", "changes"));
+
+/** Keys that are copied between devices. Cached AI answers and dictionary entries are not. */
+export const SYNC_PREFIXES = ["progress:", "saved:", "day:", "rec:", "attempt:", "miss:", "drill:", "chat:", "pref:"];
+export const isSynced = (key: string) => SYNC_PREFIXES.some((p) => key.startsWith(p));
+
+export type Change = { t: number; deleted?: boolean };
+export const changeLog = () => entries<string, Change>(metaDb());
+
+async function markChanged(key: string, deleted = false) {
+  if (!isSynced(key)) return;
+  await set(key, deleted ? { t: Date.now(), deleted } : { t: Date.now() }, metaDb());
+  window.dispatchEvent(new CustomEvent("store:local-change"));
+}
+
+/** Applies a value that came from another device, keeping its timestamp. */
+export async function applyRemote(key: string, value: unknown, change: Change) {
+  if (change.deleted) await del(key, db());
+  else await set(key, value, db());
+  await set(key, change, metaDb());
+  emit(key);
+}
+
+export function deviceId() {
+  try {
+    let id = localStorage.getItem("device-id");
+    if (!id) {
+      id = Math.random().toString(36).slice(2, 8);
+      localStorage.setItem("device-id", id);
+    }
+    return id;
+  } catch {
+    return "local";
+  }
+}
 
 const CHANGE = "store:change";
 const emit = (key: string) => {
@@ -22,12 +59,19 @@ export async function read<T>(key: string): Promise<T | undefined> {
 
 export async function write<T>(key: string, value: T) {
   await set(key, value, db());
+  await markChanged(key);
   emit(key);
 }
 
 export async function remove(key: string) {
   await del(key, db());
+  await markChanged(key, true);
   emit(key);
+}
+
+export async function readEntries<T>(prefix: string): Promise<[string, T][]> {
+  const all = await entries<string, T>(db());
+  return all.filter(([k]) => typeof k === "string" && k.startsWith(prefix));
 }
 
 export async function readPrefix<T>(prefix: string): Promise<T[]> {
@@ -157,7 +201,7 @@ export function schedule(item: SavedItem, grade: Grade): SavedItem {
 
 // ── Recordings ───────────────────────────────────────────────────────
 
-export type RecordingKind = "read" | "retell" | "topic";
+export type RecordingKind = "read" | "retell" | "topic" | "chat";
 export type Recording = {
   id: string;
   kind: RecordingKind;
@@ -173,15 +217,70 @@ export type Recording = {
 export const recordingKey = (id: string) => `rec:${id}`;
 
 // ── Daily activity (streaks) ─────────────────────────────────────────
+// Each device keeps its own counter ("day:2026-09-24~abc123") so they add up correctly after syncing.
 
 export type Day = { pages: number; saved: number; spoken: number; reviewed: number };
+const EMPTY_DAY: Day = { pages: 0, saved: 0, spoken: 0, reviewed: 0 };
 export const today = () => new Date().toLocaleDateString("en-CA");
-export const dayKey = (d: string) => `day:${d}`;
+export const dateOf = (daysAgo: number) => new Date(Date.now() - daysAgo * 86_400_000).toLocaleDateString("en-CA");
+export const dayKey = (d: string) => `day:${d}~${deviceId()}`;
 
 export async function bumpToday(field: keyof Day, by = 1) {
   const key = dayKey(today());
-  const cur = (await read<Day>(key)) ?? { pages: 0, saved: 0, spoken: 0, reviewed: 0 };
+  const cur = (await read<Day>(key)) ?? EMPTY_DAY;
   await write<Day>(key, { ...cur, [field]: cur[field] + by });
+}
+
+/** Totals for the last `count` days, newest first, summed across devices. */
+export async function readDays(count: number): Promise<{ date: string; day: Day }[]> {
+  const rows = await readEntries<Day>("day:");
+  const byDate = new Map<string, Day>();
+  for (const [k, v] of rows) {
+    const date = k.slice(4, 14);
+    const cur = byDate.get(date) ?? { ...EMPTY_DAY };
+    for (const f of Object.keys(EMPTY_DAY) as (keyof Day)[]) cur[f] += v?.[f] ?? 0;
+    byDate.set(date, cur);
+  }
+  return Array.from({ length: count }, (_, i) => ({ date: dateOf(i), day: byDate.get(dateOf(i)) ?? { ...EMPTY_DAY } }));
+}
+
+export const isActiveDay = (d?: Day) => Boolean(d && d.pages + d.saved + d.spoken + d.reviewed > 0);
+
+export function streakOf(days: { day: Day }[]) {
+  let n = 0;
+  // Today doesn't break the streak until the day is over.
+  for (let i = isActiveDay(days[0]?.day) ? 0 : 1; i < days.length && isActiveDay(days[i].day); i++) n++;
+  return n;
+}
+
+// ── Attempts (for the Progress page) ─────────────────────────────────
+
+export type AttemptKind = "read" | "shadow" | "drill" | "topic" | "retell" | "chat";
+export type Attempt = {
+  kind: AttemptKind;
+  at: number;
+  score?: number; // 0-100
+  wpm?: number;
+  seconds?: number;
+  detail?: Record<string, number>;
+  label?: string;
+};
+
+export async function logAttempt(a: Omit<Attempt, "at">) {
+  const at = Date.now();
+  await write<Attempt>(`attempt:${at}-${Math.random().toString(36).slice(2, 6)}`, { ...a, at });
+}
+
+// ── Words that were hard to say ──────────────────────────────────────
+
+export type Miss = { word: string; count: number; last: number };
+export const missKey = (word: string) => `miss:${word.toLowerCase()}`;
+
+export async function recordMisses(words: string[]) {
+  for (const w of new Set(words.map((x) => x.toLowerCase()).filter((x) => x.length > 1))) {
+    const cur = await read<Miss>(missKey(w));
+    await write<Miss>(missKey(w), { word: w, count: (cur?.count ?? 0) + 1, last: Date.now() });
+  }
 }
 
 // ── AI answer cache ──────────────────────────────────────────────────
@@ -192,3 +291,20 @@ export const aiKey = (task: string, input: unknown) => {
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
   return `ai:${task}:${(h >>> 0).toString(36)}:${s.length}`;
 };
+
+/** Live daily totals for the last `count` days (newest first). */
+export function useDays(count: number) {
+  const [days, setDays] = useState<{ date: string; day: Day }[]>([]);
+  useEffect(() => {
+    let alive = true;
+    const load = () => readDays(count).then((d) => alive && setDays(d));
+    load();
+    const onChange = (e: Event) => String((e as CustomEvent).detail).startsWith("day:") && load();
+    window.addEventListener(CHANGE, onChange);
+    return () => {
+      alive = false;
+      window.removeEventListener(CHANGE, onChange);
+    };
+  }, [count]);
+  return days;
+}

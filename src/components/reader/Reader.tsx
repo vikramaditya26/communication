@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ArrowLeft, AudioLines, Bookmark, ChevronLeft, ChevronRight, Headphones, List, MessageSquareText, Mic, Sparkles, Square, Type, Volume2 } from "lucide-react";
+import { ArrowLeft, AudioLines, Bookmark, ChevronLeft, ChevronRight, Headphones, List, MessageSquareText, Mic, Repeat, Sparkles, Square, Type, Volume2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -16,12 +16,14 @@ import { buildPageModel, PageText } from "./PageText";
 import { ReadAloudBar, ReadAloudBody, useReadAloud } from "./ReadAloudPanel";
 import { SettingsSheet, TocSheet } from "./ReaderSheets";
 import { RetellPanel } from "./RetellPanel";
+import { ShadowBody, useShadow } from "./ShadowPanel";
 import { WordCard } from "./WordCard";
 
-type Tab = "explain" | "read" | "retell";
+type Tab = "explain" | "read" | "shadow" | "retell";
 const TABS: { id: Tab; label: string; icon: typeof Sparkles }[] = [
   { id: "explain", label: "Explain", icon: Sparkles },
-  { id: "read", label: "Read aloud", icon: AudioLines },
+  { id: "read", label: "Read", icon: AudioLines },
+  { id: "shadow", label: "Shadow", icon: Repeat },
   { id: "retell", label: "Retell", icon: MessageSquareText },
 ];
 const SENTENCE_END = /[.!?;:]["”’)\]]*$/;
@@ -66,8 +68,29 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
     // On phones, show the results as soon as the learner stops reading.
     onFinish: () => !desktop && setMobilePanel("read"),
   });
-  const marks = ra.marks;
+  const sh = useShadow({ book, page: pageNum ?? 0, model, rate: settings.rate, voice: settings.voice });
+  const marks = ra.marks ?? sh.marks;
   const listening = ra.state === "listening" || ra.state === "stopping";
+
+  // Karaoke: while reading aloud, the next word to say glows and the page follows along.
+  const cursor = useMemo(() => {
+    if (!listening || !model) return null;
+    let next = 0;
+    ra.marks?.forEach((m, i) => {
+      if (m.mark === "good" && m.heard !== "__unread") next = i + 1;
+    });
+    while (next < model.tokens.length && (model.tokens[next].heading || !model.tokens[next].clean)) next++;
+    return next < model.tokens.length ? next : null;
+  }, [listening, model, ra.marks]);
+
+  useEffect(() => {
+    if (cursor === null) return;
+    const el = articleRef.current?.querySelector<HTMLElement>(`[data-i="${cursor}"]`);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const bottomLimit = window.innerHeight * (desktop ? 0.72 : 0.6);
+    if (r.bottom > bottomLimit || r.top < 90) window.scrollBy({ top: r.top - window.innerHeight * 0.35, behavior: "smooth" });
+  }, [cursor, desktop]);
 
   // Remember the page.
   const maxSeen = useRef(-1);
@@ -87,6 +110,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
       const next = Math.max(0, Math.min(index.pages - 1, n));
       if (next === pageNum) return;
       stopListen.current();
+      sh.stop();
       setDirection(next > pageNum ? 1 : -1);
       setChosenPage(next);
       setActive(null);
@@ -94,7 +118,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
       setExplainSel(null);
       window.scrollTo(0, 0);
     },
-    [index, pageNum, listening],
+    [index, pageNum, listening, sh],
   );
 
   useEffect(() => {
@@ -208,9 +232,38 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
 
   const startReading = () => {
     stopListen.current();
+    sh.stop();
     setMobilePanel(null);
     ra.start();
   };
+
+  const startShadow = (i: number) => {
+    stopListen.current();
+    if (listening) ra.stop();
+    sh.play(i);
+  };
+  const shadowSh = { ...sh, play: startShadow };
+
+  // "Shadow the next page" turns the page, then starts once it has loaded.
+  const shadowNext = useRef(false);
+  useEffect(() => {
+    if (!shadowNext.current || !sh.chunks.length) return;
+    shadowNext.current = false;
+    const t = setTimeout(() => sh.play(0), 400);
+    return () => clearTimeout(t);
+  }, [sh.chunks, sh]);
+
+  const shadow = (
+    <ShadowBody
+      sh={shadowSh}
+      onPickWord={pickWord}
+      hasNextPage={Boolean(index && pageNum !== null && pageNum < index.pages - 1)}
+      onNextPage={() => {
+        shadowNext.current = true;
+        go((pageNum ?? 0) + 1);
+      }}
+    />
+  );
 
   const touch = useRef<{ x: number; y: number; t: number } | null>(null);
   const pct = index && pageNum !== null ? ((pageNum + 1) / index.pages) * 100 : 0;
@@ -281,7 +334,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
                 {model ? (
-                  <PageText model={model} marks={marks} activeIndex={active?.i ?? null} speaking={speaking} savedWords={savedWords} onWord={onWord} />
+                  <PageText model={model} marks={marks} activeIndex={active?.i ?? null} speaking={speaking ?? sh.highlight} cursor={cursor} savedWords={savedWords} onWord={onWord} />
                 ) : (
                   <div className="space-y-4">
                     <Skeleton className="mx-auto h-8 w-1/2" />
@@ -339,6 +392,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
                 <div hidden={tab !== "read"}>
                   <ReadAloudBody ra={ra} onPickWord={pickWord} onListen={listenToPage} />
                 </div>
+                <div hidden={tab !== "shadow"}>{shadow}</div>
                 <div hidden={tab !== "retell"}>{retell}</div>
               </div>
             )}
@@ -362,14 +416,17 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
                   </button>
                 )}
                 <div className="flex items-center gap-1.5 rounded-full border border-line bg-card/90 p-1.5 shadow-lift backdrop-blur-xl">
-                  <button onClick={() => setMobilePanel("explain")} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-medium text-ink-2 active:bg-ink/5">
-                    <Sparkles size={18} /> Explain
+                  <button onClick={() => setMobilePanel("explain")} className="flex h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[11px] font-medium text-ink-2 active:bg-ink/5">
+                    <Sparkles size={19} /> Explain
+                  </button>
+                  <button onClick={() => setMobilePanel("shadow")} className="flex h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[11px] font-medium text-ink-2 active:bg-ink/5">
+                    <Repeat size={19} /> Shadow
                   </button>
                   <motion.button whileTap={{ scale: 0.92 }} onClick={startReading} aria-label="Read this page aloud" className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft">
                     <Mic size={24} />
                   </motion.button>
-                  <button onClick={() => setMobilePanel("retell")} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full text-sm font-medium text-ink-2 active:bg-ink/5">
-                    <MessageSquareText size={18} /> Retell
+                  <button onClick={() => setMobilePanel("retell")} className="flex h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[11px] font-medium text-ink-2 active:bg-ink/5">
+                    <MessageSquareText size={19} /> Retell
                   </button>
                 </div>
               </motion.div>
@@ -393,6 +450,16 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
                 listenToPage();
               }}
             />
+          </Sheet>
+          <Sheet
+            open={mobilePanel === "shadow"}
+            onClose={() => {
+              sh.stop();
+              setMobilePanel(null);
+            }}
+            title="Shadow"
+          >
+            {shadow}
           </Sheet>
           <Sheet open={mobilePanel === "retell"} onClose={() => setMobilePanel(null)} title="Retell">
             {retell}

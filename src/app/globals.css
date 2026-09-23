@@ -163,6 +163,20 @@ body {
 .word[data-speaking="word"] {
   background: color-mix(in oklab, var(--accent-2) 48%, transparent);
 }
+@keyframes cursor-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent-2) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in oklab, var(--accent-2) 25%, transparent);
+  }
+}
+/* Karaoke: the next word to read out loud */
+.word[data-cursor="true"] {
+  background: color-mix(in oklab, var(--accent-2) 40%, transparent);
+  animation: cursor-glow 1.2s ease-in-out infinite;
+}
 .word[data-mark="good"] {
   color: var(--good);
 }

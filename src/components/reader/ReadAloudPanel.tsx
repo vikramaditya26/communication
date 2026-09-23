@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CoachTasks } from "@/lib/coach";
 import { useCoach } from "@/lib/coach-client";
 import { alignReading, normalizeWord, type WordMark } from "@/lib/speech";
-import { bumpToday, recordingKey, saveItem, write, type Recording } from "@/lib/store";
+import { bumpToday, logAttempt, recordingKey, recordMisses, saveItem, write, type Recording } from "@/lib/store";
 import { formatClock, useSpeechCapture } from "@/lib/useSpeechCapture";
 import type { LibraryBook } from "@/lib/types";
 import { AudioPlayback, CoachNotice, ScoreRing, SectionLabel } from "../coach/Feedback";
@@ -51,6 +51,9 @@ export function useReadAloud({
     onFinish: ({ transcript, elapsed, audio }) => {
       const { book, page, expected, onFinish } = latest.current;
       if (transcript) {
+        const marks = alignReading(expected, transcript);
+        const { counted, accuracy } = accuracyOf(marks, expected);
+        const score = Math.round(accuracy);
         const id = `${Date.now()}`;
         write<Recording>(recordingKey(id), {
           id,
@@ -61,10 +64,15 @@ export function useReadAloud({
           createdAt: Date.now(),
           durationMs: elapsed,
           transcript,
-          score: Math.round(accuracyOf(alignReading(expected, transcript), expected).accuracy),
+          score,
           audio: audio ?? undefined,
         });
         bumpToday("spoken", Math.round(elapsed / 1000));
+        if (counted.length >= 5) {
+          const minutes = elapsed / 60000;
+          logAttempt({ kind: "read", score, seconds: Math.round(elapsed / 1000), wpm: minutes > 0.05 ? Math.round(transcript.split(/\s+/).length / minutes) : undefined, label: `${book.title}, page ${page + 1}` });
+          recordMisses(counted.filter(({ m }) => m.mark !== "good").map(({ i }) => cleanWord(expected[i])));
+        }
       }
       onFinish?.();
     },
