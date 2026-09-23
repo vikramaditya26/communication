@@ -121,7 +121,7 @@ export function SettingsSheet({ open, onClose, settings, update }: { open: boole
         </div>
 
         <div>
-          <SectionLabel>Page color</SectionLabel>
+          <SectionLabel>Page colour</SectionLabel>
           <div className="grid grid-cols-3 gap-2">
             {THEMES.map((t) => (
               <button
@@ -156,15 +156,15 @@ export function SettingsSheet({ open, onClose, settings, update }: { open: boole
             <input type="range" min={0.6} max={1.25} step={0.05} value={settings.rate} onChange={(e) => update({ rate: Number(e.target.value) })} className="flex-1 accent-[var(--accent)]" />
             <span className="w-12 text-right text-ink-3">Fast</span>
           </div>
-          <Button className="mt-3" size="sm" variant="outline" onClick={() => speak("This is the voice that will read your books to you.", { voice: settings.voice, rate: settings.rate })}>
+          <Button className="mt-3" size="sm" variant="outline" onClick={() => speak("Hello! This is how I will read your books aloud.", { voice: settings.voice, rate: settings.rate })}>
             Test voice
           </Button>
         </div>
 
         <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-line p-4">
           <div>
-            <div className="text-[15px] font-medium">Keep my recordings</div>
-            <div className="text-xs text-ink-3">So you can listen back later. They stay on this device. This doesn’t work on phones yet.</div>
+            <div className="text-[15px] font-medium">Save my voice recordings</div>
+            <div className="text-xs text-ink-3">So you can listen back and hear yourself improve. Stays on this device. (Not available on phones.)</div>
           </div>
           <input type="checkbox" checked={settings.saveAudio} onChange={(e) => update({ saveAudio: e.target.checked })} className="h-5 w-5 accent-[var(--accent)]" />
         </label>

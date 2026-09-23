@@ -233,7 +233,7 @@ export function ReadAloudBody({ ra, onPickWord, onListen, onStart }: { ra: ReadA
 
         {result.problems.length > 0 ? (
           <div>
-            <SectionLabel>Tap a word to practice it</SectionLabel>
+            <SectionLabel>Words to practise · tap one</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {result.problems.slice(0, 18).map((p) => (
                 <motion.button
@@ -257,7 +257,7 @@ export function ReadAloudBody({ ra, onPickWord, onListen, onStart }: { ra: ReadA
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl bg-good-soft p-4 text-sm">Every word was clear.</div>
+          <div className="rounded-2xl bg-good-soft p-4 text-sm">Every word came through clearly. Excellent reading!</div>
         )}
 
         {cap.audio && <AudioPlayback blob={cap.audio} label="Hear your reading" />}
@@ -322,18 +322,18 @@ export function ReadAloudBody({ ra, onPickWord, onListen, onStart }: { ra: ReadA
     <div className="p-5">
       <div className="rounded-3xl bg-gradient-to-br from-accent-soft via-accent-soft/40 to-transparent p-5">
         <AudioLines className="text-accent" size={24} />
-        <div className="mt-3 font-display text-2xl leading-tight">Read this page out loud</div>
+        <div className="mt-3 font-display text-2xl leading-tight">Read this page aloud</div>
         <p className="mt-2 text-sm leading-relaxed text-ink-2">
-          Take your time. Clear words turn <b className="text-good">green</b>. If a word sounds like a different word, it turns <b className="text-bad">red</b>.
+          Read at a relaxed pace. Words turn <b className="text-good">green</b> when they’re clear and <b className="text-bad">red</b> when they sound like a different word. Then you’ll see which words to practise.
         </p>
         <div className="mt-5 flex items-center gap-4">
           <MicButton state={state} onStart={start} onStop={ra.stop} />
           <Button variant="ghost" icon={<Headphones size={16} />} onClick={onListen}>
-            Listen first
+            Hear it first
           </Button>
         </div>
       </div>
-      <p className="mt-4 text-xs leading-relaxed text-ink-3">Use Chrome and a quiet room if you can.</p>
+      <p className="mt-4 text-xs leading-relaxed text-ink-3">Works best in Google Chrome, in a quiet room, with the phone or laptop close to you.</p>
     </div>
   );
 }

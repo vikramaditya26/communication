@@ -126,7 +126,7 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
         {browsing ? (
           <div className="mt-6 space-y-12">
             <Shelf title="From Osho’s list" note="Books he talks about in Books I Have Loved" books={books.filter((b) => b.osho)} progress={progress} onOpen={setOpen} onSeeAll={() => setFilter("Osho’s list")} />
-            <Shelf title="Easy to read" note="Shorter books in simpler English" books={books.filter((b) => b.level === "Easy")} progress={progress} onOpen={setOpen} onSeeAll={() => setFilter("Easy English")} />
+            <Shelf title="Easy English to start with" note="Short, clear books that are great for reading aloud" books={books.filter((b) => b.level === "Easy")} progress={progress} onOpen={setOpen} onSeeAll={() => setFilter("Easy English")} />
             {CATEGORIES.map((c) => (
               <Shelf key={c} title={c} books={books.filter((b) => b.category === c)} progress={progress} onOpen={setOpen} onSeeAll={() => setFilter(c)} />
             ))}
@@ -165,11 +165,11 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
 const noSubscribe = () => () => {};
 const greetingNow = () => {
   const h = new Date().getHours();
-  return h < 5 ? "Hello" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  return h < 5 ? "Namaste, night owl" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 };
 
 function Hero({ books, onOpen }: { books: LibraryBook[]; onOpen: (b: LibraryBook) => void }) {
-  const greeting = useSyncExternalStore(noSubscribe, greetingNow, () => "Hello");
+  const greeting = useSyncExternalStore(noSubscribe, greetingNow, () => "Namaste");
   const fan = ["thus-spake-zarathustra", "gitanjali", "siddhartha", "tao-te-ching", "the-prophet"]
     .map((s) => books.find((b) => b.slug === s))
     .filter(Boolean) as LibraryBook[];
@@ -180,18 +180,23 @@ function Hero({ books, onOpen }: { books: LibraryBook[]; onOpen: (b: LibraryBook
       <div className="pointer-events-none absolute -left-32 top-40 h-[380px] w-[380px] rounded-full bg-accent-2/10 blur-3xl" />
       <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-4 pt-10 sm:px-6 md:grid-cols-[1.15fr_1fr] md:pt-16">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}>
-          <h1 className="font-display text-[clamp(2.6rem,6.4vw,4.6rem)] leading-[1] tracking-[-0.02em]" style={{ fontVariationSettings: '"SOFT" 50, "opsz" 144' }}>
-            {greeting}
+          <div className="text-[13px] font-semibold uppercase tracking-[0.22em] text-accent">{greeting}</div>
+          <h1 className="mt-4 font-display text-[clamp(2.6rem,6.4vw,5rem)] leading-[0.95] tracking-[-0.025em]" style={{ fontVariationSettings: '"SOFT" 50, "opsz" 144' }}>
+            Every page,
+            <br />
+            a chance to
+            <br />
+            <span className="italic text-accent">speak better</span>.
           </h1>
-          <p className="mt-5 max-w-md text-[17px] leading-relaxed text-ink-2">
-            Pick up where you left off, or start a new book. While you read, tap any word to hear it and see what it means.
+          <p className="mt-6 max-w-lg text-[17px] leading-relaxed text-ink-2">
+            Tap any word to learn its meaning and how to say it. Read a page aloud and see exactly which words to practise. Explain it in your own words and get friendly corrections.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/read/siddhartha" className="inline-flex h-12 items-center gap-2 rounded-full bg-accent px-6 text-[15px] font-medium text-accent-ink shadow-soft transition hover:brightness-110 active:scale-[0.98]">
-              Read Siddhartha <ArrowRight size={17} />
+              Start with Siddhartha <ArrowRight size={17} />
             </Link>
             <Link href="/speak" className="inline-flex h-12 items-center gap-2 rounded-full border border-line bg-card px-6 text-[15px] font-medium transition hover:border-ink-3 active:scale-[0.98]">
-              <Mic size={17} className="text-accent" /> Practice speaking
+              <Mic size={17} className="text-accent" /> Speak on a topic
             </Link>
           </div>
         </motion.div>

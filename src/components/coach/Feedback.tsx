@@ -50,12 +50,12 @@ export function CoachNotice({ error, onRetry }: { error: CoachError; onRetry?: (
       <div className="rounded-2xl border border-dashed border-line bg-paper-2 p-4">
         <div className="flex items-center gap-2 font-medium">
           <KeyRound size={16} className="text-accent" />
-          {error.code === "no_key" ? "AI help isn’t set up yet" : "The AI key didn’t work"}
+          {error.code === "no_key" ? "The AI coach is not switched on yet" : "Your AI key was not accepted"}
         </div>
         <p className="mt-1.5 text-sm leading-relaxed text-ink-2">
           {error.code === "no_key" ? (
             <>
-              Get a free key from Google AI Studio and add it in Vercel as <code className="rounded bg-ink/5 px-1 py-0.5 text-[12px]">GEMINI_API_KEY</code>, then redeploy. Reading and the pronunciation colors work without it.
+              Add a free Gemini key as <code className="rounded bg-ink/5 px-1 py-0.5 text-[12px]">GEMINI_API_KEY</code> in Vercel (or in <code className="rounded bg-ink/5 px-1 py-0.5 text-[12px]">.env.local</code> on your Mac), then redeploy. Reading, listening and pronunciation marks still work without it.
             </>
           ) : (
             error.message
@@ -114,7 +114,7 @@ function LockedNotice({ onRetry }: { onRetry?: () => void }) {
 }
 
 export function Corrections({ items, onSave, savedIds }: { items: Correction[]; onSave?: (c: Correction) => void; savedIds?: Set<string> }) {
-  if (!items.length) return <p className="text-sm text-ink-2">No grammar mistakes this time.</p>;
+  if (!items.length) return <p className="text-sm text-ink-2">No grammar mistakes found. Well done!</p>;
   return (
     <ul className="space-y-2.5">
       {items.map((c, i) => (

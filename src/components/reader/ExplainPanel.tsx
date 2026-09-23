@@ -69,7 +69,7 @@ function SelectionHelp({ book, page, text, context, onClear }: { book: LibraryBo
           </div>
           {data.grammar.length > 0 && (
             <div>
-              <SectionLabel>Grammar</SectionLabel>
+              <SectionLabel>Grammar to notice</SectionLabel>
               <ol className="space-y-2.5">
                 {data.grammar.map((g, i) => (
                   <li key={i} className="flex gap-3">
@@ -123,12 +123,12 @@ function PageHelpSection({ book, page, pageText, onRetell }: { book: LibraryBook
     return (
       <section className="rounded-3xl bg-gradient-to-br from-accent-soft via-accent-soft/40 to-transparent p-5">
         <Sparkles className="text-accent" size={22} />
-        <div className="mt-3 font-display text-2xl leading-tight">Explain this page</div>
-        <p className="mt-1.5 text-sm leading-relaxed text-ink-2">Get a short summary, with the hard words explained in simple English.</p>
+        <div className="mt-3 font-display text-2xl leading-tight">Understand this page</div>
+        <p className="mt-1.5 text-sm leading-relaxed text-ink-2">A short summary, a simple explanation, the key ideas, and useful words to learn.</p>
         <Button className="mt-4" icon={<Sparkles size={16} />} onClick={() => run()} disabled={!input}>
-          Explain
+          Explain this page
         </Button>
-        <p className="mt-4 text-xs leading-relaxed text-ink-3">You can also tap one word, or select a sentence to have it explained.</p>
+        <p className="mt-4 text-xs leading-relaxed text-ink-3">Tip: tap any word for its meaning, or select a sentence to understand its grammar.</p>
       </section>
     );
   }
@@ -202,10 +202,10 @@ function PageHelpSection({ book, page, pageText, onRetell }: { book: LibraryBook
             </div>
           )}
           <div className="rounded-3xl bg-ink p-4 text-paper">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60">Try answering out loud</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] opacity-60">Talk about it</div>
             <div className="mt-1.5 font-reading text-[17px] leading-snug">{data.thinkAboutIt}</div>
             <button onClick={onRetell} className="mt-3 inline-flex h-9 items-center gap-2 rounded-full bg-paper px-4 text-sm font-medium text-ink active:scale-95">
-              <MessageSquareText size={15} /> Answer
+              <MessageSquareText size={15} /> Answer out loud
             </button>
           </div>
         </motion.div>
