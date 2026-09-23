@@ -30,6 +30,19 @@ const correction = obj({ youSaid: str("the learner's exact words"), better: str(
 const betterWord = obj({ instead: str("word or phrase the learner used"), try: str("a better or more natural choice"), why: str("one short reason") });
 
 const TASKS: Record<CoachTask, TaskDef> = {
+  chat: {
+    effort: "low",
+    instructions: `This is a spoken conversation practice. Play the character described in \`persona\`. The learner's latest words are in \`message\` (from speech recognition, so ignore missing punctuation); earlier turns are in \`history\`.
+Two jobs:
+1. reply: answer as the character, in their voice and with their ideas, but in simple modern spoken English (about B1) so the learner can follow. 1 to 3 short sentences. Usually end with a question so the conversation keeps going. Never correct the learner inside the reply.
+2. correction: look only at the learner's latest message. If it has a real grammar or word-choice mistake, set needed to true and give the most useful single fix. Ignore punctuation, capital letters and small speech-recognition slips. If it is fine, set needed to false and leave the other fields empty.
+Also pick one useful word or phrase from your reply that the learner might not know (newWord), or leave it empty.`,
+    schema: obj({
+      reply: str("the character's spoken reply"),
+      correction: obj({ needed: bool(), youSaid: str("the learner's words with the mistake"), better: str("corrected version"), why: str("one short reason") }),
+      newWord: obj({ word: str(), meaning: str("simple meaning") }),
+    }),
+  },
   word: {
     effort: "low",
     instructions: "Explain this word as it is used in the sentence from the book.",

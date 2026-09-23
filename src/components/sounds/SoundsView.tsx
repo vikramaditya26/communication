@@ -5,7 +5,7 @@ import { ArrowLeft, Check, Ear, Mic, RotateCcw, Volume2, X } from "lucide-react"
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CONTRASTS, drillKey, emptyStats, pct, type Contrast, type DrillStats } from "@/lib/sounds";
-import { listenOnce, loadVoices, speak, speechRecognitionSupported, wordsMatch } from "@/lib/speech";
+import { listenOnce, loadVoices, speak, useSpeechSupported, wordsMatch } from "@/lib/speech";
 import { bumpToday, logAttempt, read, useStored, write } from "@/lib/store";
 import { SectionLabel } from "../coach/Feedback";
 import { Button } from "../ui";
@@ -118,6 +118,7 @@ function Meter({ label, value }: { label: string; value: number | null }) {
 function Drill({ c, onBack }: { c: Contrast; onBack: () => void }) {
   const [mode, setMode] = useState<Mode | null>(null);
   const [stats] = useStored<DrillStats>(drillKey(c.id));
+  const supported = useSpeechSupported();
 
   return (
     <div>
@@ -174,7 +175,7 @@ function Drill({ c, onBack }: { c: Contrast; onBack: () => void }) {
               text="Say the word you see. The app checks which word it heard."
               score={stats ? pct(stats.say) : null}
               onClick={() => setMode("say")}
-              disabled={!speechRecognitionSupported()}
+              disabled={!supported}
             />
           </div>
         </>

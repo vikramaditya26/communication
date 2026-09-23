@@ -63,6 +63,14 @@ export type TopicFeedback = {
   nextTime: string;
 };
 
+export type ChatTurn = { role: "learner" | "character"; text: string };
+
+export type ChatReply = {
+  reply: string;
+  correction: { needed: boolean; youSaid: string; better: string; why: string };
+  newWord: { word: string; meaning: string };
+};
+
 export type CoachTasks = {
   word: { input: { word: string; sentence: string; book: string }; output: WordHelp };
   text: { input: { text: string; context: string; book: string }; output: TextHelp };
@@ -73,6 +81,7 @@ export type CoachTasks = {
   };
   retell: { input: { text: string; transcript: string; book: string }; output: RetellFeedback };
   topic: { input: { topic: string; transcript: string; seconds: number }; output: TopicFeedback };
+  chat: { input: { character: string; persona: string; book: string; history: ChatTurn[]; message: string }; output: ChatReply };
 };
 
 export type CoachTask = keyof CoachTasks;

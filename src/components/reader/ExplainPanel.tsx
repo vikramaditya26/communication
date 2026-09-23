@@ -1,6 +1,8 @@
 "use client";
 
-import { Bookmark, MessageSquareText, Quote, Sparkles, X } from "lucide-react";
+import { ArrowRight, Bookmark, MessageSquareText, MessagesSquare, Quote, Sparkles, X } from "lucide-react";
+import Link from "next/link";
+import { characterForBook } from "@/lib/characters";
 import { motion } from "motion/react";
 import { useMemo } from "react";
 import { useCoach } from "@/lib/coach-client";
@@ -23,7 +25,23 @@ export function ExplainPanel({ book, page, pageText, selection, onClearSelection
     <div className="space-y-6 p-5">
       {selection && <SelectionHelp book={book} page={page} text={selection.text} context={pageText} onClear={onClearSelection} />}
       <PageHelpSection book={book} page={page} pageText={pageText} onRetell={onRetell} />
+      <TalkLink book={book} />
     </div>
+  );
+}
+
+function TalkLink({ book }: { book: LibraryBook }) {
+  const c = characterForBook(book.slug);
+  if (!c) return null;
+  return (
+    <Link href={`/talk?c=${c.id}`} className="group flex items-center gap-3 rounded-3xl border border-line p-4 transition hover:border-ink-3">
+      <MessagesSquare size={20} className="shrink-0 text-accent" />
+      <span className="min-w-0 flex-1 text-sm">
+        <span className="block font-medium">Talk with {c.name}</span>
+        <span className="text-ink-3">Ask about the book, out loud</span>
+      </span>
+      <ArrowRight size={16} className="text-accent transition group-hover:translate-x-0.5" />
+    </Link>
   );
 }
 

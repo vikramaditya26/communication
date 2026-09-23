@@ -1,5 +1,7 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
+
 // Browser speech: listening (speech-to-text), speaking (text-to-speech),
 // recording the learner's voice, and comparing what was read with what was heard.
 
@@ -282,4 +284,10 @@ export function listenOnce(maxMs = 4000): Promise<string> {
     if (!l) return finish();
     const timer = setTimeout(() => l.stop(), maxMs);
   });
+}
+
+const noSubscribe = () => () => {};
+/** Hydration-safe check: assumes support while rendering on the server. */
+export function useSpeechSupported() {
+  return useSyncExternalStore(noSubscribe, speechRecognitionSupported, () => true);
 }

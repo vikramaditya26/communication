@@ -1,7 +1,8 @@
 "use client";
 
 import clsx from "clsx";
-import { Lightbulb, Pencil, RotateCcw, Shuffle, Trash2 } from "lucide-react";
+import { ArrowRight, Lightbulb, MessagesSquare, Pencil, RotateCcw, Shuffle, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type { CoachTasks, Correction } from "@/lib/coach";
@@ -88,6 +89,17 @@ export function SpeakView() {
       <div className="text-[13px] font-semibold uppercase tracking-[0.22em] text-accent">Speaking practice</div>
       <h1 className="mt-3 font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1] tracking-tight">Speak on a topic</h1>
       <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ink-2">Talk for a minute, the way you would in a real conversation. Then see your grammar fixes, better words, and how to structure your answer.</p>
+
+      <Link href="/talk" className="group mt-6 flex items-center gap-4 rounded-3xl border border-line bg-card p-4 transition hover:border-ink-3 hover:shadow-soft">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent-soft text-accent">
+          <MessagesSquare size={20} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">Talk with a character</span>
+          <span className="block text-sm text-ink-3">A real back-and-forth conversation with Siddhartha, Socrates, Alice and others</span>
+        </span>
+        <ArrowRight size={18} className="text-accent transition group-hover:translate-x-0.5" />
+      </Link>
 
       {!busy && cap.state !== "done" && (
         <div className="no-scrollbar -mx-4 mt-8 flex gap-2 overflow-x-auto px-4">

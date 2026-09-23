@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { ArrowRight, ChevronLeft, ChevronRight, Ear, Mic, Repeat, RotateCcw, Volume2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { alignReading, listen, loadVoices, normalizeWord, speak, speechRecognitionSupported, stopSpeaking, type Listener, type WordMark } from "@/lib/speech";
+import { alignReading, listen, loadVoices, normalizeWord, speak, stopSpeaking, useSpeechSupported, type Listener, type WordMark } from "@/lib/speech";
 import { bumpToday, logAttempt, recordMisses } from "@/lib/store";
 import type { LibraryBook } from "@/lib/types";
 import { ScoreRing, SectionLabel } from "../coach/Feedback";
@@ -246,8 +246,9 @@ export function ShadowBody({ sh, onPickWord, onNextPage, hasNextPage }: { sh: Sh
   const result = results[index];
   const doneCount = Object.keys(results).length;
   const finished = chunks.length > 0 && doneCount === chunks.length && phase === "scored" && index === chunks.length - 1;
+  const supported = useSpeechSupported();
 
-  if (!speechRecognitionSupported()) {
+  if (!supported) {
     return <div className="m-5 rounded-2xl bg-warn-soft p-4 text-sm">Shadowing needs the microphone. Please open this page in Google Chrome.</div>;
   }
   if (!chunks.length) return <div className="p-5 text-sm text-ink-3">There’s nothing to shadow on this page.</div>;
