@@ -17,7 +17,7 @@ const metaDb = () => (metaStore ??= createStore("communication-meta", "changes")
 export const SYNC_PREFIXES = ["progress:", "saved:", "day:", "rec:", "attempt:", "miss:", "drill:", "chat:", "pref:"];
 export const isSynced = (key: string) => SYNC_PREFIXES.some((p) => key.startsWith(p));
 
-export type Change = { t: number; deleted?: boolean };
+export type Change = { t: number; deleted?: boolean; remote?: boolean };
 export const changeLog = () => entries<string, Change>(metaDb());
 
 async function markChanged(key: string, deleted = false) {
@@ -26,11 +26,18 @@ async function markChanged(key: string, deleted = false) {
   window.dispatchEvent(new CustomEvent("store:local-change"));
 }
 
+/** Gives data saved before sync existed the oldest possible change time, so any newer copy elsewhere wins. */
+export async function markLegacy() {
+  const known = new Set((await changeLog()).map(([k]) => k));
+  const all = await entries<string, unknown>(db());
+  for (const [k] of all) if (typeof k === "string" && isSynced(k) && !known.has(k)) await set(k, { t: 1 }, metaDb());
+}
+
 /** Applies a value that came from another device, keeping its timestamp. */
 export async function applyRemote(key: string, value: unknown, change: Change) {
   if (change.deleted) await del(key, db());
   else await set(key, value, db());
-  await set(key, change, metaDb());
+  await set(key, { ...change, remote: true }, metaDb());
   emit(key);
 }
 

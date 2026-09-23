@@ -7,6 +7,12 @@ A reading app for practicing English. It has 101 free books, including the ones 
 - **Retell**: say what the page was about in your own words and get your grammar corrected.
 - **Speak**: talk about a topic for a minute and get feedback.
 - **Review**: words and corrections you saved come back as flashcards.
+- **Shadow**: the app says one short piece of the page, you repeat it, and each word is scored.
+- **Sounds**: games for the sound pairs Indian English speakers mix up (V/W, TH/T, TH/D, EE/I, A/E, S/SH, O/OH).
+- **Talk**: a spoken conversation with Siddhartha, Socrates, Alice and others, with quiet grammar corrections.
+- **Progress**: charts of your clear-word score, speaking minutes and speaking scores, plus your hardest words.
+- **Daily goal**: a ring for pages and speaking minutes, and a calendar reminder.
+- **Phone app**: install it from Chrome's menu and save books for offline reading.
 
 Progress, saved words and recordings are stored in the browser on each device.
 
@@ -42,6 +48,10 @@ Reading, listening, the word colors and the dictionary all work without a key. T
 Gemini is the one to start with. Adding a Groq key as well gives you a backup for when Gemini's free limit runs out. On Google's free tier, what you send may be used to improve their products.
 
 Answers to word lookups and page summaries are saved in the browser, so asking again doesn't use up requests.
+
+## Sync between Mac and phone
+
+In Vercel, open the project → **Storage** → **Create Database** → **Upstash for Redis** (free) → connect it to the project, then redeploy. The Progress page shows whether sync is working. Voice recordings stay on the device that made them.
 
 ## Put it online (Vercel)
 
