@@ -12,6 +12,7 @@ import type { LibraryBook } from "@/lib/types";
 import { Cover } from "../Cover";
 import { Chip } from "../ui";
 import { BookSheet } from "./BookSheet";
+import { DailyGoal } from "./DailyGoal";
 
 const FILTERS = ["All", "Osho’s list", "Easy English", ...CATEGORIES];
 
@@ -234,24 +235,18 @@ function TodayStrip() {
   const today = days[0]?.day;
   const due = now ? saved.filter((s) => s.due <= now).length : 0;
 
-  const stats = [
-    { icon: Flame, label: "Day streak", value: streak, tint: "text-accent" },
-    { icon: Sparkles, label: "Pages today", value: today?.pages ?? 0, tint: "text-accent-2" },
-    { icon: Mic, label: "Minutes spoken", value: Math.round((today?.spoken ?? 0) / 60), tint: "text-good" },
-  ];
-
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-8 grid grid-cols-3 gap-2 rounded-[28px] border border-line bg-card/80 p-2 sm:gap-3 md:grid-cols-4">
-      {stats.map(({ icon: Icon, label, value, tint }) => (
-        <div key={label} className="flex flex-col gap-1 rounded-3xl px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-4">
-          <Icon size={22} className={tint} />
-          <div>
-            <div className="font-display text-2xl leading-none tabular-nums">{value}</div>
-            <div className="mt-1 text-[12px] text-ink-3">{label}</div>
-          </div>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mt-8 grid gap-2 rounded-[28px] border border-line bg-card/80 p-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-[1.3fr_1fr_1.2fr]">
+      <DailyGoal today={today} />
+      <Link href="/progress" className="group flex items-center gap-3 rounded-3xl px-4 py-3 transition hover:bg-ink/[0.03]">
+        <Flame size={26} className="text-accent" />
+        <div>
+          <div className="font-display text-3xl leading-none tabular-nums">{streak}</div>
+          <div className="mt-1 text-[12px] text-ink-3">{streak === 1 ? "day" : "days"} in a row</div>
         </div>
-      ))}
-      <Link href="/review" className="col-span-3 flex items-center justify-between gap-3 rounded-3xl bg-ink px-5 py-3.5 text-paper transition hover:brightness-110 md:col-span-1">
+        <span className="ml-auto text-xs font-medium text-accent opacity-0 transition group-hover:opacity-100">Progress →</span>
+      </Link>
+      <Link href="/review" className="flex items-center justify-between gap-3 rounded-3xl bg-ink px-5 py-3.5 text-paper transition hover:brightness-110 sm:col-span-2 lg:col-span-1">
         <div className="flex items-center gap-3">
           <Layers size={20} />
           <div>
