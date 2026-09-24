@@ -13,7 +13,7 @@ type Entry = { k: string; v?: unknown; t: number; d?: boolean };
 const url = () => env("KV_REST_API_URL") || env("UPSTASH_REDIS_REST_URL");
 const token = () => env("KV_REST_API_TOKEN") || env("UPSTASH_REDIS_REST_TOKEN");
 
-const SYNCED = /^(progress|saved|day|rec|attempt|miss|drill|chat|pref):/;
+const SYNCED = /^(progress|saved|day|rec|attempt|miss|drill|chat|pref|word):/;
 const MAX_VALUE = 200_000; // characters; recordings are sent without audio
 
 async function redis(commands: (string | number)[][]): Promise<unknown[]> {

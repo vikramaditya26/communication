@@ -13,7 +13,7 @@ import { useInstallPrompt } from "@/lib/pwa";
 const LINKS = [
   { href: "/", label: "Library", icon: Library },
   { href: "/speak", label: "Speak", icon: Mic },
-  { href: "/sounds", label: "Sounds", icon: Ear },
+  { href: "/pronounce", label: "Pronounce", icon: Ear },
   { href: "/review", label: "Review", icon: Layers },
   { href: "/progress", label: "Progress", icon: ChartLine },
 ];
