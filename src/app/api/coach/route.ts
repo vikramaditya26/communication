@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { CoachErrorCode, CoachTask } from "@/lib/coach";
+import { env as setting } from "@/lib/env";
 
 // Free models can take a while to answer.
 export const maxDuration = 60;
@@ -186,10 +187,10 @@ function errorDetail(raw: string) {
 // ── Claude (paid) ────────────────────────────────────────────────────
 
 async function askClaude(def: TaskDef, content: string): Promise<unknown> {
-  const client = new Anthropic();
+  const client = new Anthropic({ apiKey: setting("ANTHROPIC_API_KEY") });
   try {
     const response = await client.beta.messages.create({
-      model: process.env.ANTHROPIC_MODEL ?? "claude-opus-5",
+      model: setting("ANTHROPIC_MODEL") ?? "claude-opus-5",
       max_tokens: 16000,
       system: SYSTEM,
       betas: ["server-side-fallback-2026-07-01"],
@@ -275,7 +276,16 @@ async function askCompatible(p: Compatible, task: CoachTask, def: TaskDef, conte
 type Provider = { name: string; ask: (task: CoachTask, def: TaskDef, content: string) => Promise<unknown> };
 
 function providers(): Provider[] {
-  const env = process.env;
+  const env = {
+    ANTHROPIC_API_KEY: setting("ANTHROPIC_API_KEY"),
+    GEMINI_API_KEY: setting("GEMINI_API_KEY") ?? setting("GOOGLE_API_KEY"),
+    GEMINI_MODEL: setting("GEMINI_MODEL"),
+    GROQ_API_KEY: setting("GROQ_API_KEY"),
+    GROQ_MODEL: setting("GROQ_MODEL"),
+    AI_BASE_URL: setting("AI_BASE_URL"),
+    AI_API_KEY: setting("AI_API_KEY"),
+    AI_MODEL: setting("AI_MODEL"),
+  };
   const list: Provider[] = [];
   const compatible = (p: Compatible): Provider => ({ name: p.name, ask: (task, def, content) => askCompatible(p, task, def, content) });
 
@@ -323,7 +333,7 @@ const STATUS: Record<CoachErrorCode, number> = { no_key: 503, bad_key: 401, rate
 const fail = (code: CoachErrorCode, message: string) => Response.json({ error: code, message }, { status: STATUS[code] });
 
 export async function POST(request: Request) {
-  const password = process.env.APP_PASSWORD;
+  const password = setting("APP_PASSWORD");
   if (password && request.headers.get("x-app-password") !== password) {
     return fail("locked", "This app is locked. Enter the app password.");
   }
@@ -352,4 +362,15 @@ export async function POST(request: Request) {
 
   const worst = errors.find((e) => e.code === "bad_key") ?? errors[0];
   return fail(worst.code, worst.message);
+}
+
+/** Shows which AI services the site can see (names only, never the keys). Open /api/coach in the browser. */
+export async function GET() {
+  const names = providers().map((p) => p.name);
+  return Response.json({
+    aiServices: names,
+    working: names.length > 0,
+    appPasswordSet: Boolean(setting("APP_PASSWORD")),
+    hint: names.length ? undefined : "No AI key found. In Vercel → Settings → Environment Variables, add GEMINI_API_KEY for Production, then redeploy.",
+  });
 }

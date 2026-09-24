@@ -4,12 +4,14 @@
 // vaani:data   hash        key → JSON { v, t, d }  (value, time changed on the device, deleted)
 // vaani:times  sorted set  key scored by when the server received it, so "what changed since" is quick
 
+import { env } from "@/lib/env";
+
 export const maxDuration = 30;
 
 type Entry = { k: string; v?: unknown; t: number; d?: boolean };
 
-const url = () => process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const token = () => process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+const url = () => env("KV_REST_API_URL") || env("UPSTASH_REDIS_REST_URL");
+const token = () => env("KV_REST_API_TOKEN") || env("UPSTASH_REDIS_REST_TOKEN");
 
 const SYNCED = /^(progress|saved|day|rec|attempt|miss|drill|chat|pref):/;
 const MAX_VALUE = 200_000; // characters; recordings are sent without audio
@@ -31,7 +33,7 @@ async function redis(commands: (string | number)[][]): Promise<unknown[]> {
 const chunks = <T,>(list: T[], size: number) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size));
 
 export async function POST(request: Request) {
-  const password = process.env.APP_PASSWORD;
+  const password = env("APP_PASSWORD");
   if (password && request.headers.get("x-app-password") !== password) {
     return Response.json({ error: "locked", message: "This app is locked. Enter the app password." }, { status: 401 });
   }
