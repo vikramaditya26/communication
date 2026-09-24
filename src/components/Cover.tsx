@@ -28,7 +28,18 @@ const hash = (s: string) => {
   return h >>> 0;
 };
 
-function Pattern({ kind, color, seed }: { kind: string; color: string; seed: number }) {
+const PATTERN_OF: Record<string, string> = {
+  "Osho’s Favorites": "Mystics & Scriptures",
+  "Wisdom for Everyday Life": "Philosophy",
+  "Speaking & Communication": "Mind & Society",
+  "Great Novels & Plays": "Novels & Plays",
+  "Short Stories": "Novels & Plays",
+  Adventure: "Novels & Plays",
+  "Love Stories": "Poetry",
+};
+
+function Pattern({ kind: category, color, seed }: { kind: string; color: string; seed: number }) {
+  const kind = PATTERN_OF[category] ?? category;
   const common = { stroke: color, fill: "none", strokeWidth: 1.2, opacity: 0.55 };
   switch (kind) {
     case "Mystics & Scriptures": // a sun / mandala

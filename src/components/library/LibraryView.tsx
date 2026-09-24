@@ -5,7 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, Flame, Layers, Mic, Search, Spar
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { CATEGORIES } from "@/lib/library";
+import { CATEGORIES, CATEGORY_NOTES } from "@/lib/library";
 import { streakOf, useDays, useStoredList, type Progress, type SavedItem } from "@/lib/store";
 import { useNow } from "@/lib/useNow";
 import type { LibraryBook } from "@/lib/types";
@@ -14,7 +14,7 @@ import { Chip } from "../ui";
 import { BookSheet } from "./BookSheet";
 import { DailyGoal } from "./DailyGoal";
 
-const FILTERS = ["All", "Osho’s list", "Easy English", ...CATEGORIES];
+const FILTERS = ["All", "Easy English", ...CATEGORIES];
 
 export function LibraryView({ books }: { books: LibraryBook[] }) {
   const [query, setQuery] = useState("");
@@ -38,7 +38,6 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return books.filter((b) => {
-      if (filter === "Osho’s list" && !b.osho) return false;
       if (filter === "Easy English" && b.level !== "Easy") return false;
       if (CATEGORIES.includes(filter as (typeof CATEGORIES)[number]) && b.category !== filter) return false;
       if (!q) return true;
@@ -97,7 +96,7 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
 
         <div className="sticky top-16 z-30 -mx-4 mt-10 border-b border-transparent bg-paper/85 px-4 py-3 backdrop-blur-xl sm:-mx-6 sm:px-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-            <label className="relative flex h-11 items-center lg:w-80">
+            <label className="relative flex h-11 shrink-0 items-center lg:w-80">
               <Search size={17} className="pointer-events-none absolute left-4 text-ink-3" />
               <input
                 ref={searchRef}
@@ -114,10 +113,9 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
                 <kbd className="pointer-events-none absolute right-4 hidden rounded border border-line px-1.5 text-[11px] text-ink-3 md:block">⌘K</kbd>
               )}
             </label>
-            <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+            <div className="no-scrollbar -mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
               {FILTERS.map((f) => (
                 <Chip key={f} active={filter === f} onClick={() => setFilter(f)}>
-                  {f === "Osho’s list" && <Sparkles size={13} className="-mt-0.5 mr-1 inline" />}
                   {f}
                 </Chip>
               ))}
@@ -127,10 +125,8 @@ export function LibraryView({ books }: { books: LibraryBook[] }) {
 
         {browsing ? (
           <div className="mt-6 space-y-12">
-            <Shelf title="From Osho’s list" note="Books he talks about in Books I Have Loved" books={books.filter((b) => b.osho)} progress={progress} onOpen={setOpen} onSeeAll={() => setFilter("Osho’s list")} />
-            <Shelf title="Easy English to start with" note="Short, clear books that are great for reading aloud" books={books.filter((b) => b.level === "Easy")} progress={progress} onOpen={setOpen} onSeeAll={() => setFilter("Easy English")} />
             {CATEGORIES.map((c) => (
-              <Shelf key={c} title={c} books={books.filter((b) => b.category === c)} progress={progress} onOpen={setOpen} onSeeAll={() => setFilter(c)} />
+              <Shelf key={c} title={c} note={CATEGORY_NOTES[c]} books={books.filter((b) => b.category === c)} progress={progress} onOpen={setOpen} onSeeAll={() => setFilter(c)} />
             ))}
           </div>
         ) : (

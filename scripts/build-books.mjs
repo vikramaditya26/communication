@@ -246,8 +246,11 @@ async function loadGutenberg(id, book) {
   if (book.kjv) return { blocks: kjvToChapters(blocks), description: [], cover: null, pgTitle };
   // Drop leftover production credits at the very start.
   while (blocks.length && blocks[0].p && /^(produced by|e-?text prepared|transcribed|this etext|this ebook)/i.test(blocks[0].p)) blocks.shift();
+  // Scanner and transcriber credits aren't part of the book.
+  const credit = /project gutenberg|e-?text prepared|scanned by|omnipage|online distributed proofread|produced by .*(team|proofread)|transcriber'?s note|internet archive|^copyright\b|copyright convention|all rights reserved/i;
   blocks = blocks
     .filter((b) => !(b.p && /^\*\*\* ?(start|end) of (the|this) project gutenberg/i.test(b.p)))
+    .filter((b) => !((b.p && b.p.length < 300 && credit.test(b.p)) || (b.h && credit.test(b.h))))
     .map((b) => (b.v ? { v: joinWrappedLines(b.v) } : b));
   return { blocks, description: [], cover: null, pgTitle };
 }
@@ -272,7 +275,27 @@ function splitLongParagraph(text) {
   return parts;
 }
 
-function paginate(blocks) {
+// A long run of headings with no text between them is a contents or illustrations list, not the book.
+function dropHeadingLists(blocks) {
+  const out = [];
+  let run = [];
+  const flush = () => {
+    out.push(...(run.length > 5 ? run.slice(-2) : run));
+    run = [];
+  };
+  for (const b of blocks) {
+    if (b.h) run.push(b);
+    else {
+      flush();
+      out.push(b);
+    }
+  }
+  flush();
+  return out;
+}
+
+function paginate(input) {
+  const blocks = dropHeadingLists(input);
   const pages = [];
   const toc = [];
   let page = [];
@@ -382,7 +405,8 @@ async function buildBook(book) {
   if (src.blocks.length < 3) throw new Error("no text extracted");
   const { pages, toc } = paginate(src.blocks);
   const words = src.blocks.reduce((n, b) => n + blockWords(b), 0);
-  const start = findStart(toc, book.title, pages.length, book.startMode);
+  const byTitle = book.startAt ? toc.find((e) => new RegExp(book.startAt, "i").test(e.t))?.p : undefined;
+  const start = book.startPage ?? byTitle ?? findStart(toc, book.title, pages.length, book.startMode);
 
   const dir = path.join(OUT_BOOKS, book.slug);
   await fs.rm(dir, { recursive: true, force: true });

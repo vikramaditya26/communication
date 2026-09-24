@@ -1,6 +1,6 @@
 # Vaani
 
-A reading app for practicing English. It has 101 free books, including the ones Osho talks about in *Books I Have Loved*.
+A reading app for practicing English. It has 186 free books on 16 shelves (each book on exactly one), starting with the ones Osho talks about in *Books I Have Loved*.
 
 - **Reader**: tap a word to hear it and see what it means. Select a sentence to have it explained. Ask for a summary of any page.
 - **Read out loud**: read a page and each word turns green if it was clear, or red if it sounded like a different word.
@@ -8,7 +8,7 @@ A reading app for practicing English. It has 101 free books, including the ones 
 - **Speak**: talk about a topic for a minute and get feedback.
 - **Review**: words and corrections you saved come back as flashcards.
 - **Shadow**: the app says one short piece of the page, you repeat it, and each word is scored.
-- **Sounds**: games for the sound pairs Indian English speakers mix up (V/W, TH/T, TH/D, EE/I, A/E, S/SH, O/OH).
+- **Pronounce**: about 2,500 everyday words that Indian English speakers often say differently, each with its meaning, an everyday sentence, an easy guide (de-VEL-uhp) and the common mistake. Say the word, then the sentence. Sound-pair listening games are linked from there.
 - **Talk**: a spoken conversation with Siddhartha, Socrates, Alice and others, with quiet grammar corrections.
 - **Progress**: charts of your clear-word score, speaking minutes and speaking scores, plus your hardest words.
 - **Daily goal**: a ring for pages and speaking minutes, and a calendar reminder.
@@ -58,6 +58,10 @@ In Vercel, open the project → **Storage** → **Create Database** → **Upstas
 1. Import this repo on https://vercel.com.
 2. In **Settings → Environment Variables**, add `GEMINI_API_KEY` (and `APP_PASSWORD` so only you can use it).
 3. Redeploy. Environment variables only take effect after a new deployment.
+
+## Pronunciation words
+
+`node scripts/build-words.mjs` picks the words from the CMU Pronouncing Dictionary and a subtitle word-frequency list, then asks Gemini (`GEMINI_API_KEY` in `.env.local`) once for meanings and sentences. The result is `public/words/words.json`; answers are cached in `.cache/words/`.
 
 ## Changing the books
 
