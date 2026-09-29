@@ -8,7 +8,8 @@ A reading app for practicing English. It has 186 free books on 16 shelves (each 
 - **Speak**: talk about a topic for a minute and get feedback.
 - **Review**: words and corrections you saved come back as flashcards.
 - **Shadow**: the app says one short piece of the page, you repeat it, and each word is scored.
-- **Pronounce**: about 2,500 everyday words that Indian English speakers often say differently, each with its meaning, an everyday sentence, an easy guide (de-VEL-uhp) and the common mistake. Say the word, then the sentence. Sound-pair listening games are linked from there.
+- **Pronounce**: about 2,500 intermediate and advanced words that many speakers get wrong (hyperbole, epitome, hierarchy), each with its meaning, an everyday sentence, an easy guide (i-PI-tuh-mee) and the common mistake. Pick your level, say the word, then the sentence. Sound-pair listening games are linked from there.
+- **Grammar**: 56 short daily lessons in the order of Wren & Martin's *High School English Grammar*: the rule, the common Indian-English mistakes, about ten exercises (choose, tap the mistake, type, build the sentence, say it), and a short speaking task the AI coach checks. Each lesson opens the next one, and questions you get wrong come back in a warm-up.
 - **Talk**: a spoken conversation with Siddhartha, Socrates, Alice and others, with quiet grammar corrections.
 - **Progress**: charts of your clear-word score, speaking minutes and speaking scores, plus your hardest words.
 - **Daily goal**: a ring for pages and speaking minutes, and a calendar reminder.
@@ -61,7 +62,17 @@ In Vercel, open the project → **Storage** → **Create Database** → **Upstas
 
 ## Pronunciation words
 
-`node scripts/build-words.mjs` picks the words from the CMU Pronouncing Dictionary and a subtitle word-frequency list, then asks Gemini (`GEMINI_API_KEY` in `.env.local`) once for meanings and sentences. The result is `public/words/words.json`; answers are cached in `.cache/words/`.
+`node scripts/build-words.mjs` picks the words from the CMU Pronouncing Dictionary and a subtitle word-frequency list (skipping the 2,500 most common words, and scoring the rest by length, stress, silent letters and odd spellings), then asks Gemini (`GEMINI_API_KEY` in `.env.local`) once for meanings and sentences. The result is `public/words/words.json`; answers are cached in `.cache/words/`.
+
+## Grammar lessons
+
+The lessons are written in `scripts/grammar/unit-*.mjs` (the format is explained at the top of `scripts/build-grammar.mjs`). After changing them, run:
+
+```bash
+node scripts/build-grammar.mjs
+```
+
+It checks every exercise and writes `public/grammar/`. The explanations and exercises are original; only the order of topics follows Wren & Martin.
 
 ## Changing the books
 

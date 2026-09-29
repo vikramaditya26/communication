@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ChartLine, Download, Ear, Layers, Library, Mic, Moon, Sun } from "lucide-react";
+import { ChartLine, Download, Ear, Layers, Library, Mic, Moon, PenLine, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/", label: "Library", icon: Library },
   { href: "/speak", label: "Speak", icon: Mic },
   { href: "/pronounce", label: "Pronounce", icon: Ear },
+  { href: "/grammar", label: "Grammar", icon: PenLine },
   { href: "/review", label: "Review", icon: Layers },
   { href: "/progress", label: "Progress", icon: ChartLine },
 ];
@@ -104,10 +105,12 @@ export function Nav() {
                 key={href}
                 href={href}
                 className={clsx("relative flex h-9 items-center gap-2 rounded-full px-4 text-sm font-medium transition-colors", isActive(href) ? "text-paper" : "text-ink-2 hover:text-ink")}
+                aria-label={label}
+                title={label}
               >
                 {isActive(href) && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", damping: 30, stiffness: 400 }} />}
                 <Icon size={16} className="relative" />
-                <span className="relative">{label}</span>
+                <span className="relative hidden lg:inline">{label}</span>
                 {href === "/review" && due > 0 && (
                   <span className="relative rounded-full bg-accent px-1.5 text-[11px] font-semibold leading-5 text-accent-ink">{due}</span>
                 )}

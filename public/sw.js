@@ -1,10 +1,10 @@
 // Vaani service worker: keeps the app and the books you open available offline.
-const VERSION = "v1";
+const VERSION = "v2";
 const PAGES = `vaani-pages-${VERSION}`;
 const STATIC = `vaani-static-${VERSION}`;
 const BOOKS = "vaani-books"; // not versioned, so downloaded books survive app updates
 
-const SHELL = ["/", "/speak", "/sounds", "/review", "/progress", "/talk"];
+const SHELL = ["/", "/speak", "/pronounce", "/grammar", "/sounds", "/review", "/progress", "/talk"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -58,7 +58,7 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname.startsWith("/books/") || url.pathname.startsWith("/covers/")) {
     event.respondWith(cacheFirst(BOOKS, request));
-  } else if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/fonts/")) {
+  } else if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/grammar/") || url.pathname.startsWith("/words/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/fonts/")) {
     event.respondWith(cacheFirst(STATIC, request));
   } else if (request.mode === "navigate") {
     event.respondWith(networkFirst(request));

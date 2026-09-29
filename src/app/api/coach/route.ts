@@ -31,6 +31,19 @@ const correction = obj({ youSaid: str("the learner's exact words"), better: str(
 const betterWord = obj({ instead: str("word or phrase the learner used"), try: str("a better or more natural choice"), why: str("one short reason") });
 
 const TASKS: Record<CoachTask, TaskDef> = {
+  grammar: {
+    effort: "low",
+    instructions:
+      "The learner just finished a grammar lesson (`lesson`, goal: `goal`) and answered the speaking task `task` out loud. `transcript` comes from speech recognition, so ignore punctuation, capital letters and small recognition slips. Focus first on the grammar point of this lesson, then on any other clear grammar mistakes. Quote the learner's real words.",
+    schema: obj({
+      score: int("1 to 5: how well they used this lesson's grammar point"),
+      onTarget: str("1-2 sentences on how they used this lesson's grammar point"),
+      goodExamples: arr(str(), "up to 3 of the learner's own sentences that used the grammar point correctly"),
+      corrections: arr(correction, "up to 6 corrections from what they actually said, lesson point first"),
+      polishedVersion: str("their answer rewritten in natural, correct spoken English, keeping their ideas"),
+      tip: str("one short tip for using this grammar point next time"),
+    }),
+  },
   chat: {
     effort: "low",
     instructions: `This is a spoken conversation practice. Play the character described in \`persona\`. The learner's latest words are in \`message\` (from speech recognition, so ignore missing punctuation); earlier turns are in \`history\`.

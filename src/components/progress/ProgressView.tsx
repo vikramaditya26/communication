@@ -16,6 +16,7 @@ const KIND: Record<AttemptKind, { label: string; style: string }> = {
   read: { label: "Read aloud", style: "bg-good-soft text-good" },
   shadow: { label: "Shadowing", style: "bg-accent-soft text-accent" },
   drill: { label: "Sounds", style: "bg-warn-soft text-warn" },
+  grammar: { label: "Grammar", style: "bg-good-soft text-good" },
   topic: { label: "Speaking", style: "bg-bad-soft text-bad" },
   retell: { label: "Retell", style: "bg-ink/5 text-ink-2" },
   chat: { label: "Conversation", style: "bg-ink/5 text-ink-2" },

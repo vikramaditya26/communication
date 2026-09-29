@@ -63,6 +63,15 @@ export type TopicFeedback = {
   nextTime: string;
 };
 
+export type GrammarFeedback = {
+  score: number;
+  onTarget: string;
+  goodExamples: string[];
+  corrections: Correction[];
+  polishedVersion: string;
+  tip: string;
+};
+
 export type ChatTurn = { role: "learner" | "character"; text: string };
 
 export type ChatReply = {
@@ -81,6 +90,7 @@ export type CoachTasks = {
   };
   retell: { input: { text: string; transcript: string; book: string }; output: RetellFeedback };
   topic: { input: { topic: string; transcript: string; seconds: number }; output: TopicFeedback };
+  grammar: { input: { lesson: string; goal: string; task: string; transcript: string }; output: GrammarFeedback };
   chat: { input: { character: string; persona: string; book: string; history: ChatTurn[]; message: string }; output: ChatReply };
 };
 

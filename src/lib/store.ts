@@ -14,7 +14,7 @@ const db = () => (store ??= createStore("communication", "kv"));
 const metaDb = () => (metaStore ??= createStore("communication-meta", "changes"));
 
 /** Keys that are copied between devices. Cached AI answers and dictionary entries are not. */
-export const SYNC_PREFIXES = ["progress:", "saved:", "day:", "rec:", "attempt:", "miss:", "drill:", "chat:", "pref:", "word:"];
+export const SYNC_PREFIXES = ["progress:", "saved:", "day:", "rec:", "attempt:", "miss:", "drill:", "chat:", "pref:", "word:", "grammar:"];
 export const isSynced = (key: string) => SYNC_PREFIXES.some((p) => key.startsWith(p));
 
 export type Change = { t: number; deleted?: boolean; remote?: boolean };
@@ -262,7 +262,7 @@ export function streakOf(days: { day: Day }[]) {
 
 // ── Attempts (for the Progress page) ─────────────────────────────────
 
-export type AttemptKind = "read" | "shadow" | "drill" | "topic" | "retell" | "chat";
+export type AttemptKind = "read" | "shadow" | "drill" | "topic" | "retell" | "chat" | "grammar";
 export type Attempt = {
   kind: AttemptKind;
   at: number;
