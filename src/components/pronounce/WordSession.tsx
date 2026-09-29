@@ -175,6 +175,7 @@ export function WordSession({ words, stats, onExit, onAgain }: { words: Word[]; 
           <p className="mt-5 text-[17px] leading-relaxed">{w.m}</p>
 
           <div className="mt-4 flex flex-wrap gap-1.5">
+            {w.lv && <span className="rounded-full bg-ink px-2.5 py-1 text-xs font-medium text-paper">{w.lv}</span>}
             {w.tags.filter((t) => TAGS[t]).map((t) => (
               <span key={t} className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent" title={TAGS[t].tip}>
                 {TAGS[t].short}

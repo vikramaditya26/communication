@@ -14,7 +14,13 @@ export type Word = {
   t: string; // topic
   x?: string; // common Indian English mistake
   r: number; // how common (lower = more common)
+  lv: Level;
 };
+
+export type Level = "Intermediate" | "Advanced";
+export type LevelChoice = Level | "Both";
+export const LEVELS: LevelChoice[] = ["Intermediate", "Advanced", "Both"];
+export const levelKey = "pref:pronounce-level";
 
 export const TAGS: Record<string, { label: string; short: string; tip: string }> = {
   vw: { label: "V and W", short: "V/W", tip: "V: top teeth touch your bottom lip. W: round your lips like “oo”, and your teeth don’t touch." },
@@ -60,20 +66,31 @@ export async function recordSentence(w: string, score: number) {
   await write(wordKey(w), { ...cur, sentence: Math.max(cur.sentence ?? 0, score), last: Date.now() });
 }
 
-/** Ten words for today: ones you got wrong first, then new common words. */
-export function pickSession(words: Word[], stats: Map<string, WordStat>, size = 10) {
+function shuffleForToday<T>(list: T[]) {
+  let seed = [...new Date().toLocaleDateString("en-CA")].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 17);
+  const rand = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** Ten words for today: ones you got wrong first, then new words at your level. */
+export function pickSession(words: Word[], stats: Map<string, WordStat>, level: LevelChoice = "Both", size = 10) {
   const missed = words.filter((w) => stats.get(w.w) && !stats.get(w.w)!.lastRight).sort((a, b) => stats.get(a.w)!.last - stats.get(b.w)!.last);
   const shaky = words.filter((w) => stats.get(w.w)?.lastRight && !isLearned(stats.get(w.w)));
-  const fresh = words.filter((w) => !stats.get(w.w));
-  // Skip the very short everyday words (you know them already); two harder words for every medium one.
-  const longer = fresh.filter((w) => w.w.length >= 6 && w.r >= 700);
-  const isHard = (w: Word) => w.tags.length >= 2 || w.syl >= 3;
-  const hard = longer.filter(isHard);
-  const medium = longer.filter((w) => !isHard(w));
-  const mixed: Word[] = [];
-  for (let k = 0; mixed.length < size * 2 && (hard.length || medium.length); k++) {
-    const next = k % 3 === 2 ? medium.shift() ?? hard.shift() : hard.shift() ?? medium.shift();
-    if (next) mixed.push(next);
+  // A different mix every day (but the same all day), from the whole level rather than the most common words first.
+  const fresh = shuffleForToday(words.filter((w) => !stats.get(w.w) && (level === "Both" || w.lv === level)));
+  // Mix the list so one session isn't all one sound: take words from each sound in turn.
+  const bySound = new Map<string, Word[]>();
+  for (const w of fresh) {
+    const key = TAG_ORDER.find((t) => w.tags.includes(t)) ?? "other";
+    bySound.set(key, [...(bySound.get(key) ?? []), w]);
   }
+  const queues = [...bySound.values()];
+  const mixed: Word[] = [];
+  while (mixed.length < size && queues.some((q) => q.length)) for (const q of queues) if (q.length && mixed.length < size) mixed.push(q.shift()!);
   return [...missed.slice(0, 4), ...shaky.slice(0, 2), ...mixed].slice(0, size);
 }

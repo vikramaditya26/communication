@@ -5,8 +5,8 @@ import { ArrowLeft, ArrowRight, Check, Ear, Play, Search, Sparkles, Volume2, X }
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useEntries } from "@/lib/store";
-import { isLearned, loadWords, pickSession, TAG_ORDER, TAGS, type Word, type WordStat } from "@/lib/words";
+import { useEntries, useStored } from "@/lib/store";
+import { isLearned, levelKey, LEVELS, loadWords, pickSession, TAG_ORDER, TAGS, type LevelChoice, type Word, type WordStat } from "@/lib/words";
 import { speak } from "@/lib/speech";
 import { Chip, Skeleton } from "../ui";
 import { WordSession } from "./WordSession";
@@ -64,10 +64,12 @@ function Home({
   onPractice: (words: Word[]) => void;
 }) {
   const [q, setQ] = useState("");
+  const [savedLevel, setLevel] = useStored<LevelChoice>(levelKey);
+  const level = savedLevel ?? "Intermediate";
   const learned = words ? words.filter((w) => isLearned(stats.get(w.w))).length : 0;
   const practiced = words ? words.filter((w) => stats.has(w.w)).length : 0;
   const toFix = words ? words.filter((w) => stats.get(w.w) && !stats.get(w.w)!.lastRight).length : 0;
-  const today = words ? pickSession(words, stats) : [];
+  const today = words ? pickSession(words, stats, level) : [];
   const topics = useMemo(() => {
     const map = new Map<string, number>();
     words?.forEach((w) => map.set(w.t, (map.get(w.t) ?? 0) + 1));
@@ -80,10 +82,30 @@ function Home({
       <div className="text-[13px] font-semibold uppercase tracking-[0.22em] text-accent">Pronunciation</div>
       <h1 className="mt-3 font-display text-[clamp(2.2rem,5vw,3.6rem)] leading-[1] tracking-tight">Pronounce</h1>
       <p className="mt-3 max-w-xl text-[16px] leading-relaxed text-ink-2">
-        {words ? words.length.toLocaleString() : "Thousands of"} everyday words that are easy to say the Indian way instead of the American way. Each one has its meaning and a sentence you would really use.
+        {words ? words.length.toLocaleString() : "Thousands of"} words that even good speakers get wrong: hyperbole, epitome, entrepreneur, colonel. Each one has its meaning and a sentence you would really use.
       </p>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-[1.4fr_1fr]">
+      <div className="mt-7 flex flex-wrap items-center gap-3">
+        <span className="text-sm text-ink-3">Your level</span>
+        <div className="inline-flex rounded-full border border-line bg-card p-1">
+          {LEVELS.map((l) => (
+            <button
+              key={l}
+              onClick={() => setLevel(l)}
+              className={clsx("h-9 rounded-full px-4 text-sm font-medium transition", level === l ? "bg-ink text-paper" : "text-ink-2 hover:text-ink")}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        {words && (
+          <span className="text-sm text-ink-3">
+            {(level === "Both" ? words : words.filter((w) => w.lv === level)).length.toLocaleString()} words
+          </span>
+        )}
+      </div>
+
+      <div className="mt-5 grid gap-4 md:grid-cols-[1.4fr_1fr]">
         <motion.button
           whileHover={{ y: -3 }}
           whileTap={{ scale: 0.98 }}
@@ -127,6 +149,33 @@ function Home({
         </div>
       )}
       {q.trim() && words && !results.length && <p className="mt-3 text-sm text-ink-3">That word isn’t in the list yet.</p>}
+
+      <h2 className="mt-12 font-display text-2xl">By level</h2>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {(["Intermediate", "Advanced"] as const).map((l) => {
+          const list = words?.filter((w) => w.lv === l) ?? [];
+          const done = list.filter((w) => isLearned(stats.get(w.w))).length;
+          return (
+            <motion.button
+              key={l}
+              whileHover={{ y: -3 }}
+              onClick={() => onList(`${l} words`, (w) => w.lv === l)}
+              className="rounded-3xl border border-line bg-card p-5 text-left transition-shadow hover:shadow-soft"
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-display text-2xl">{l}</span>
+                <span className="text-sm text-ink-3">{words ? `${done} of ${list.length} learned` : " "}</span>
+              </div>
+              <div className="mt-1 text-sm text-ink-2">
+                {l === "Intermediate" ? "Tricky stress and spelling: vulnerable, colonel, entrepreneur" : "Words that trip up almost everyone: epitome, hierarchy, stethoscope"}
+              </div>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-ink/10">
+                <div className="h-full rounded-full bg-good" style={{ width: `${list.length ? (done / list.length) * 100 : 0}%` }} />
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
 
       <h2 className="mt-12 font-display text-2xl">By sound</h2>
       <p className="mt-1 text-sm text-ink-3">The sounds Indian English speakers most often say differently</p>
@@ -203,6 +252,7 @@ function WordRow({ w, stat, onClick }: { w: Word; stat?: WordStat; onClick: () =
         <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="text-[16px] font-medium">{w.w}</span>
           <span className="font-display text-[15px] text-accent">{w.say}</span>
+          {w.lv === "Advanced" && <span className="rounded-full bg-accent-soft px-1.5 text-[10px] font-semibold uppercase tracking-wide text-accent">Adv</span>}
         </div>
         <div className="truncate text-sm text-ink-3">{w.m}</div>
       </button>

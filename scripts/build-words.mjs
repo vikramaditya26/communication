@@ -18,32 +18,50 @@ const CACHE = path.join(ROOT, ".cache/words");
 const OUT = path.join(ROOT, "public/words/words.json");
 const TARGET = 2600;
 
-// Well-known words that Indian speakers often say differently. Always included.
-const HANDPICKED = `vegetable comfortable wednesday february island receipt salmon almond often debris genre suite pizza colonel
-entrepreneur hotel develop determine event idea picture pitcher walk work world girl word worm warm won't want bowl cupboard subtle
-doubt debt hierarchy ask asked clothes months sixth twelfth burger pronunciation pronounce mischievous especially library probably
-temperature interesting chocolate different every family business restaurant laboratory schedule route tomb sword wolf women woman
-although through thorough thought though tough cough enough knowledge psychology recipe epitome hyperbole cache niche facade bouquet
-ballet buffet gauge height weight weird foreign queue choir chaos character chemistry stomach mechanic machine chef aisle iron
-nuclear jewelry athlete mischief prescription vehicle vegan vitamin volunteer visa vowel west vest wine vine value village welcome
-weather whether ward variety video violence wallet wardrobe zero zone zebra lazy busy closet cloth three thirty thanks thirsty
-thursday month mouth breathe breath bath bathe birthday other mother brother together rhythm ethics theme thyme photo photographer
-photography economy economic career canal police success percent guitar cartoon desert dessert record present object content
-increase address advertisement comment analysis analyze category colleague prefer preference occur component opportunity ability
-available environment government particular specifically necessary secretary communication vocabulary generally literally actually
-delivery primarily temporarily sandwich salad banana tomato potato onion garlic coffee yogurt cereal pasta lettuce broccoli cucumber
-biscuit dessert menu buffet cafe caramel quinoa croissant spinach cabbage cauliflower mayonnaise ketchup mustard sauce
-office manager meeting deadline project client customer employee employer interview resume salary budget invoice presentation
-laptop keyboard software hardware password wifi email internet website download upload battery charger
-doctor medicine pharmacy hospital surgery fever headache allergy injury muscle stomach throat thermometer
-airport passport luggage journey hotel reservation vacation ticket departure arrival
-weekend weekday tomorrow yesterday tonight morning evening afternoon calendar
-comfortable uncomfortable vulnerable valuable available variable probably definitely obviously apparently
-`.split(/\s+/).filter(Boolean);
+// Common words whose spelling misleads almost everyone: kept even though they are frequent.
+const ALWAYS = new Set(["colonel", "lieutenant", "sergeant", "champagne", "foreign", "campaign", "garage", "route", "comfortable", "literally"]);
+
+// Well-known hard words that many speakers get wrong.
+const HANDPICKED = `hyperbole epitome facade niche genre entrepreneur entrepreneurial quinoa cache debris chassis segue gauge chaos choir colonel
+lieutenant quay indict subtle subtlety mischievous nuclear february wednesday espresso sherbet library probably specific specifically pacific
+arctic prerogative prescription pronunciation supposedly irrelevant jewelry realtor athlete athletic candidate asterisk cavalry comfortable
+vegetable temperature interesting chocolate miniature laboratory temporarily particularly literally vulnerable vulnerability hierarchy
+hierarchical rural plural squirrel mirror iron anemone synonymous anonymous phenomenon phenomena recipe archipelago archive architect
+architecture mortgage receipt salmon almond psalm plumber debt doubt island aisle sword thorough thoroughly borough although drought
+doughnut bough trough queue onomatopoeia pneumonia psychology psychiatrist psychic pseudonym mnemonic rhythm rhyme rhetoric rhetorical
+rheumatism rhinoceros pharaoh sovereign sovereignty foreign reign campaign champagne cologne lasagna gnocchi bruschetta croissant chipotle
+quesadilla tortilla guacamole cappuccino macchiato prosciutto chauffeur bourgeois rendezvous connoisseur liaison facade fiance naive
+ambiguous ambiguity amateur apostrophe awry banal buoy buoyant caveat chameleon charisma charismatic chasm chimera coup cuisine debut depot
+dilemma espionage etiquette extraordinary forte gist hyperbolic inherent integral jaguar larynx mauve minutiae nuance onerous paradigm
+penchant placebo posthumous precedence precedent regime reservoir respite rapport siege silhouette subpoena suite synecdoche unequivocally
+vehement vehicle wreak wreath yacht zealous zoology aesthetic aesthetics alias algorithm anxiety apparatus archaic ballet bouquet brooch
+calm catastrophe catastrophic colleague conscience conscientious conscious consensus controversy controversial coyote cupboard dachshund
+deteriorate dissect eighth elementary especially exacerbate exquisite fiasco foliage height heir hierarchy idiosyncrasy infrastructure
+intricacies intricate irony isthmus knight lieu maintenance mayonnaise memento mischief muscle nephew nuptial oregano orangutan
+penultimate percolate pharmaceutical phlegm picturesque psyche recuperate renaissance restaurant sacrilegious schedule scissors sixth
+spontaneity spontaneous statistics statistical stomach strength suite synonym temperament tertiary thesaurus tomb triathlon unanimous
+unanimously vaccine vegetarian veterinarian wednesday width wrath zucchini simultaneously simultaneous preliminary sophisticated hypothesis
+hypotheses enthusiasm enthusiastic authentic authenticity authority methodology thermometer therapeutic theoretical arithmetic anesthesia
+atheist athletics ethnicity cathedral orthodox mathematics marathon sympathetic thirteenth thousandth twelfth clothes breathe loathe soothe
+withdrawal worthwhile voluntarily valuable versatile virtually veteran whereas wholesale versus vineyard wharf dwarf swivel awkward anxious
+luxury luxurious exaggerate exhaust exhausted exhibit exhibition exempt executive examine existence advertisement adult research garage
+detail harass harassment inquiry aluminum privacy route either neither leisure zebra genuine genuinely hygiene hygienic auxiliary
+bureaucracy bureaucratic cacophony camaraderie capitalism clientele cognizant colloquial comparable condolences conscientious consortium
+contemporary deterrent diaphragm dilapidated disheveled draught ecstasy eczema entourage epiphany equivocal espresso euphemism exponentially
+extravaganza facetious fluorescent forfeit fuchsia gazebo gourmet grandeur guarantee hors hospitable hydraulic hypocrisy hypocrite
+impotent infamous innocuous irreparable irrevocable itinerary jeopardy kindergarten lackadaisical lethargic libertarian malicious
+malleable melancholy memorabilia menial miscellaneous mischievously mortgage naivety nausea negotiate negotiation nomenclature
+obsequious ophthalmologist orchestra ostentatious paradoxically parliament pedagogy peremptory perseverance phlegmatic plagiarism
+pneumatic poignant prestigious pretentious procrastinate procrastination pronunciation protagonist quintessential rapport receptacle
+reciprocity reminiscence remuneration reprisal requisite rhythmic ricochet sabotage satire scenario schism scrutiny segue sergeant
+sesquipedalian shrewd skeptical solemn soldier specificity squalor stationery suave subtle superfluous surveillance susceptible sustenance
+tenacious thermostat thyroid tranquil ubiquitous unprecedented utensil vaguely valet vicious vocabulary voluminous wednesday wistful
+wrought xenophobia yogurt zenith`.split(/\s+/).filter(Boolean);
 
 // Everyday words only: skip names and rude words even if they are frequent in subtitles.
 const BLOCK = new Set(`fuck fucking fucked fucker shit shitty bitch bastard damn dammit goddamn asshole dick pussy cock whore slut nigger
-sexy sex porn penis vagina boobs`.split(/\s+/));
+sexy sex porn penis vagina boobs heterosexual homosexual transvestite sicilian chopin whomever motherless
+fatherless overly overload photocopy inactive unreachable nazi nazis hitler`.split(/\s+/));
 
 const VOWELS = new Set(["AA", "AE", "AH", "AO", "AW", "AY", "EH", "ER", "EY", "IH", "IY", "OW", "OY", "UH", "UW"]);
 const base = (p) => p.replace(/\d/g, "");
@@ -123,7 +141,23 @@ function tagsFor(word, phones) {
   return tags;
 }
 
-const STRONG = new Set(["vw", "th", "z", "silent", "hidden", "scluster", "spell"]);
+
+/** Rough difficulty for an intermediate speaker: long words, surprising stress, silent letters, odd spellings. */
+function difficulty(word, phones, tags, rank) {
+  const syl = phones.filter(isVowel).length;
+  const primary = phones.filter(isVowel).findIndex((p) => p.endsWith("1"));
+  let d = 0;
+  if (syl >= 3) d += 2;
+  if (syl >= 4) d += 1;
+  if (syl >= 5) d += 1;
+  if (primary >= 1) d += 1;
+  if (primary >= 2) d += 1;
+  for (const [t, v] of Object.entries({ silent: 3, spell: 3, hidden: 2, th: 1, vw: 1, z: 1, scluster: 1, ae: 1, oh: 1 })) if (tags.includes(t)) d += v;
+  // Fewer sounds than letters usually means a spelling that doesn't match the sound.
+  if (phones.length <= word.length * 0.6) d += 1;
+  if (rank > 12000) d += 1;
+  return d;
+}
 
 async function pick() {
   const dict = new Map();
@@ -141,25 +175,39 @@ async function pick() {
   const add = (w, why) => {
     const phones = dict.get(w);
     if (!phones || chosen.has(w)) return;
-    chosen.set(w, { w, phones, tags: tagsFor(w, phones), rank: rank.get(w) ?? 60000, why });
+    const tags = tagsFor(w, phones);
+    const r = rank.get(w) ?? 60000;
+    chosen.set(w, { w, phones, tags, rank: r, why, level: r > 20000 || difficulty(w, phones, tags, r) >= (why === "hand" ? 7 : 9) ? "Advanced" : "Intermediate" });
   };
-  HANDPICKED.forEach((w) => add(w.toLowerCase(), "hand"));
+  // Very common hand-picked words (probably, calm) stay only if they are genuinely hard to say.
+  for (const w of HANDPICKED.map((x) => x.toLowerCase())) {
+    const phones = dict.get(w);
+    if (phones && !ALWAYS.has(w) && (rank.get(w) ?? 60000) < 2500 && difficulty(w, phones, tagsFor(w, phones), rank.get(w)) < 7) continue;
+    add(w, "hand");
+  }
 
   const stems = new Set([...chosen.keys()]);
+  // Only plain dictionary headwords: no names (Montenegro) and no plural or verb forms (relaxes).
+  const headwords = new Set(
+    (await fs.readFile("/usr/share/dict/web2", "utf8").catch(() => "")).split("\n").filter((l) => /^[a-z]+$/.test(l)),
+  );
+  const common = new Set(freq.slice(0, 4000).filter((x) => x.length >= 3));
+  const isCompound = (w) => [...Array(w.length - 5).keys()].some((k) => common.has(w.slice(0, k + 3)) && common.has(w.slice(k + 3).replace(/(s|es|ing|ed|er)$/, "")));
   let edCount = 0;
-  for (const w of freq.slice(0, 30000)) {
+  // Skip the most common words (easy for an intermediate speaker) and very rare ones.
+  for (const w of freq.slice(2500, 45000)) {
     if (chosen.size >= TARGET) break;
-    if (!/^[a-z]+$/.test(w) || w.length < 5 || BLOCK.has(w) || !dict.has(w)) continue;
+    if (!/^[a-z]+$/.test(w) || w.length < 6 || BLOCK.has(w) || !dict.has(w)) continue;
+    if (headwords.size && !headwords.has(w)) continue;
+    // Two easy words stuck together (honeymoon, businessman) are easy to say.
+    if (isCompound(w)) continue;
     // One form per word family: skip "develops" / "developing" when "develop" is in.
     const base = w.replace(/(ing|ed|es|s|ly|er|est)$/, "");
-    if (stems.has(base) || stems.has(base + "e") || [...["s", "es", "ed", "ing", "ly"]].some((e) => stems.has(w.slice(0, -e.length)) && w.endsWith(e))) {
-      if (!(w.endsWith("ed") && edCount < 120)) continue;
-    }
-    const tags = tagsFor(w, dict.get(w));
-    const strong = tags.filter((t) => STRONG.has(t)).length;
-    const good = strong >= 1 || (tags.includes("stress") && w.length >= 7) || (tags.includes("ed") && edCount < 120);
-    if (!good) continue;
-    if (tags.includes("ed")) edCount++;
+    if (stems.has(base) || stems.has(base + "e") || ["s", "es", "ed", "ing", "ly"].some((e) => w.endsWith(e) && stems.has(w.slice(0, -e.length)))) continue;
+    const phones = dict.get(w);
+    const tags = tagsFor(w, phones);
+    if (tags.includes("ed") && ++edCount > 60) continue;
+    if (difficulty(w, phones, tags, rank.get(w) ?? 0) < 5) continue;
     add(w, "freq");
     stems.add(w);
     stems.add(base);
@@ -357,6 +405,8 @@ console.log(`picked ${words.length} words`, tagCount);
 if (process.argv.includes("--pick")) {
   console.log(words.slice(0, 60).map((w) => `${w.w}(${w.tags.join(",")})`).join(" "));
   console.log("… last:", words.slice(-30).map((w) => w.w).join(" "));
+  console.log("… sample:", words.filter((_, i) => i > 420 && i % 25 === 0).map((w) => `${w.w}:${w.level[0]}`).join(" "));
+  console.log("levels:", words.filter((w) => w.level === "Advanced").length, "advanced");
   process.exit(0);
 }
 
@@ -366,9 +416,10 @@ const info = process.argv.includes("--write-only")
 const out = [];
 for (const w of words) {
   const e = info[w.w];
-  if (!e || !e.keep || !e.meaning || !e.sentence) continue;
+  // Hand-picked words stay even if Gemini thinks they are rare: rare-but-useful is the point.
+  if (!e || !(e.keep || w.why === "hand") || !e.meaning || !e.sentence) continue;
   const g = guides(w.phones);
-  out.push({ w: w.w, say: g.say, ipa: g.ipa, syl: g.syl, tags: w.tags, m: e.meaning, s: e.sentence, t: e.topic, x: e.mistake || undefined, r: w.rank });
+  out.push({ w: w.w, say: g.say, ipa: g.ipa, syl: g.syl, tags: w.tags, m: e.meaning, s: e.sentence, t: e.topic, x: e.mistake || undefined, r: w.rank, lv: w.level });
 }
 out.sort((a, b) => a.r - b.r);
 // Keep, rewrite or remove each "common mistake" note after checking it against the real pronunciation.
