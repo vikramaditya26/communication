@@ -424,6 +424,10 @@ async function buildBook(book) {
     await fs.mkdir(OUT_COVERS, { recursive: true });
     await sharp(src.cover).resize(600, 900, { fit: "cover" }).webp({ quality: 80 }).toFile(path.join(OUT_COVERS, `${book.slug}.webp`));
     cover = `/covers/${book.slug}.webp`;
+  } else {
+    // A cover found earlier by scripts/fetch-covers.mjs.
+    const found = await fs.stat(path.join(OUT_COVERS, `${book.slug}.webp`)).catch(() => null);
+    if (found) cover = `/covers/${book.slug}.webp`;
   }
 
   return {
