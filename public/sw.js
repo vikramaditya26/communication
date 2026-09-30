@@ -1,16 +1,26 @@
 // Vaani service worker: keeps the app and the books you open available offline.
-const VERSION = "v2";
+const VERSION = "v3";
 const PAGES = `vaani-pages-${VERSION}`;
 const STATIC = `vaani-static-${VERSION}`;
 const BOOKS = "vaani-books"; // not versioned, so downloaded books survive app updates
 
 const SHELL = ["/", "/speak", "/pronounce", "/grammar", "/sounds", "/review", "/progress", "/talk"];
 
+// The grammar course and the pronunciation words are small, so keep all of them for offline use.
+const saveLessons = async () => {
+  const cache = await caches.open(STATIC);
+  await Promise.allSettled([cache.add("/words/words.json"), cache.add("/grammar/index.json")]);
+  const index = await cache.match("/grammar/index.json");
+  if (!index) return;
+  const units = await index.json();
+  await Promise.allSettled(units.flatMap((u) => u.lessons.map((l) => cache.add(`/grammar/${l.id}.json`))));
+};
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(PAGES)
-      .then((cache) => Promise.allSettled(SHELL.map((url) => cache.add(url))))
+      .then((cache) => Promise.allSettled([...SHELL.map((url) => cache.add(url)), saveLessons()]))
       .then(() => self.skipWaiting()),
   );
 });

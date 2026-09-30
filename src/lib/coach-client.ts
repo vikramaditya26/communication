@@ -14,7 +14,7 @@ export class CoachError extends Error {
 }
 
 // Answers that never change for the same input are cached on this device.
-const CACHEABLE: CoachTask[] = ["word", "text", "page"];
+const CACHEABLE: CoachTask[] = ["word", "text", "page", "translate"];
 
 export async function askCoach<T extends CoachTask>(task: T, input: CoachTasks[T]["input"]): Promise<CoachTasks[T]["output"]> {
   const key = aiKey(task, input);

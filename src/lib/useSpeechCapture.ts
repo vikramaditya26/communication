@@ -29,7 +29,10 @@ export function useSpeechCapture({ saveAudio = true, onFinish }: { saveAudio?: b
   const startedAt = useRef(0);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const finished = useRef(false);
+  // Each attempt gets a number, so a late event from the last attempt can't end the new one.
+  const attempt = useRef(0);
   const transcriptRef = useRef("");
+  const interimRef = useRef("");
   const onFinishRef = useRef(onFinish);
   useEffect(() => {
     onFinishRef.current = onFinish;
@@ -49,9 +52,14 @@ export function useSpeechCapture({ saveAudio = true, onFinish }: { saveAudio?: b
     const blob = recorder.current ? await recorder.current.stop() : null;
     recorder.current = null;
     setAudio(blob);
+    // Words the browser never confirmed still count.
+    const full = `${transcriptRef.current} ${interimRef.current}`.replace(/\s+/g, " ").trim();
+    transcriptRef.current = full;
+    interimRef.current = "";
+    setTranscript(full);
     setInterim("");
     setState((s) => (s === "error" ? s : "done"));
-    onFinishRef.current?.({ transcript: transcriptRef.current.trim(), elapsed: took, audio: blob });
+    onFinishRef.current?.({ transcript: full, elapsed: took, audio: blob });
   }, []);
 
   const start = useCallback(async () => {
@@ -61,7 +69,9 @@ export function useSpeechCapture({ saveAudio = true, onFinish }: { saveAudio?: b
       return;
     }
     finished.current = false;
+    const id = ++attempt.current;
     transcriptRef.current = "";
+    interimRef.current = "";
     setTranscript("");
     setInterim("");
     setAudio(null);
@@ -69,19 +79,23 @@ export function useSpeechCapture({ saveAudio = true, onFinish }: { saveAudio?: b
     setElapsed(0);
     // Phones usually can't share the microphone between recording and listening.
     if (saveAudio && !isMobile()) recorder.current = await startRecorder();
+    if (id !== attempt.current) return;
     startedAt.current = Date.now();
     listener.current = listen({
       onText: (finalText, interimText) => {
+        if (id !== attempt.current) return;
         transcriptRef.current = finalText;
+        interimRef.current = interimText;
         setTranscript(finalText);
         setInterim(interimText);
       },
       onError: (code) => {
+        if (id !== attempt.current) return;
         setError(ERRORS[code] ?? `Listening stopped (${code}). Please try again.`);
         setState("error");
         finish();
       },
-      onEnd: finish,
+      onEnd: () => id === attempt.current && finish(),
     });
     timer.current = setInterval(() => setElapsed(Date.now() - startedAt.current), 250);
     setState("listening");
@@ -93,10 +107,12 @@ export function useSpeechCapture({ saveAudio = true, onFinish }: { saveAudio?: b
     listener.current.stop();
     listener.current = null;
     // Some browsers never fire "end"; don't leave the learner waiting.
-    setTimeout(finish, 2500);
+    const id = attempt.current;
+    setTimeout(() => id === attempt.current && finish(), 2500);
   }, [finish]);
 
   const reset = useCallback(() => {
+    attempt.current++;
     listener.current?.stop();
     listener.current = null;
     clearTimer();

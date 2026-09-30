@@ -80,7 +80,11 @@ async function run() {
     // Only this device's own edits are sent; things that came from elsewhere are already on the server.
     const log = (await changeLog()).filter(([, c]) => c.t > pushedUpTo && !c.remote);
     const changes: Entry[] = [];
-    for (const [k, c] of log) changes.push(c.deleted ? { k, t: c.t, d: true } : { k, t: c.t, v: forUpload(k, await read(k)) });
+    for (const [k, c] of log) {
+      const value = c.deleted ? undefined : forUpload(k, await read(k));
+      // Something that no longer exists here is sent as deleted, never as an empty record.
+      changes.push(value === undefined || value === null ? { k, t: c.t, d: true } : { k, t: c.t, v: value });
+    }
 
     let since = ls.get("sync-since");
     let received = 0;
@@ -107,7 +111,7 @@ async function run() {
           const current = await read<Record<string, unknown>>(e.k);
           if (current?.audio) value = { ...(value as object), audio: current.audio };
         }
-        await applyRemote(e.k, value, { t: e.t, deleted: e.d });
+        await applyRemote(e.k, value, { t: e.t, deleted: e.d || value === undefined || value === null });
         received++;
       }
       since = body.now;

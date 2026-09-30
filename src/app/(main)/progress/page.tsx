@@ -1,7 +1,8 @@
-import { ProgressView } from "@/components/progress/ProgressView";
+import { ReviewHub } from "@/components/review/ReviewHub";
 
 export const metadata = { title: "Progress" };
 
+// Progress lives on the same page as Review; this address opens it on the Progress tab.
 export default function ProgressPage() {
-  return <ProgressView />;
+  return <ReviewHub initial="progress" />;
 }

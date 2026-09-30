@@ -3,17 +3,18 @@
 A reading app for practicing English. It has 186 free books on 16 shelves (each book on exactly one), starting with the ones Osho talks about in *Books I Have Loved*.
 
 - **Reader**: tap a word to hear it and see what it means. Select a sentence to have it explained. Ask for a summary of any page.
-- **Read out loud**: read a page and each word turns green if it was clear, or red if it sounded like a different word.
+- **Listen**: the headphones button reads the page to you. Pause, stop, go to the sentence before or after, or tap any word to listen from there.
+- **Hindi**: the translate button shows the whole page in Hindi; tap it again for English. Each page is translated once and then kept on the device.
+- **Read out loud**: read a page and each word turns green if it was clear, or red if it sounded like a different word. A red word never holds you back: the page follows you, you can say a red word again to fix it, press Skip, or tap any word to continue from there. Tap a word and choose *Read from here* to start in the middle.
 - **Retell**: say what the page was about in your own words and get your grammar corrected.
 - **Speak**: talk about a topic for a minute and get feedback.
-- **Review**: words and corrections you saved come back as flashcards.
+- **Review**: words and corrections you saved come back as flashcards. The same page has a **Progress** tab with charts of your clear-word score, speaking minutes and speaking scores, plus your hardest words.
 - **Shadow**: the app says one short piece of the page, you repeat it, and each word is scored.
 - **Pronounce**: about 2,500 intermediate and advanced words that many speakers get wrong (hyperbole, epitome, hierarchy), each with its meaning, an everyday sentence, an easy guide (i-PI-tuh-mee) and the common mistake. Pick your level, say the word, then the sentence. Sound-pair listening games are linked from there.
 - **Grammar**: 56 short daily lessons in the order of Wren & Martin's *High School English Grammar*: the rule, the common Indian-English mistakes, about ten exercises (choose, tap the mistake, type, build the sentence, say it), and a short speaking task the AI coach checks. Each lesson opens the next one, and questions you get wrong come back in a warm-up.
 - **Talk**: a spoken conversation with Siddhartha, Socrates, Alice and others, with quiet grammar corrections.
-- **Progress**: charts of your clear-word score, speaking minutes and speaking scores, plus your hardest words.
 - **Daily goal**: a ring for pages and speaking minutes, and a calendar reminder.
-- **Phone app**: install it from Chrome's menu and save books for offline reading.
+- **Phone app**: install it from Chrome's menu and save books for offline reading. Grammar lessons and pronunciation words work offline as soon as the app is installed.
 
 Progress, saved words and recordings are stored in the browser on each device.
 

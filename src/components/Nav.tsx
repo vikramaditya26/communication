@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { ChartLine, Download, Ear, Layers, Library, Mic, Moon, PenLine, Sun } from "lucide-react";
+import { Download, Ear, Layers, Library, Mic, Moon, PenLine, Sun } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -15,8 +15,8 @@ const LINKS = [
   { href: "/speak", label: "Speak", icon: Mic },
   { href: "/pronounce", label: "Pronounce", icon: Ear },
   { href: "/grammar", label: "Grammar", icon: PenLine },
+  // Review and Progress share one page.
   { href: "/review", label: "Review", icon: Layers },
-  { href: "/progress", label: "Progress", icon: ChartLine },
 ];
 
 export function Logo({ className }: { className?: string }) {
@@ -90,7 +90,7 @@ function useDueCount() {
 export function Nav() {
   const path = usePathname();
   const due = useDueCount();
-  const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  const isActive = (href: string) => (href === "/" ? path === "/" : path.startsWith(href) || (href === "/review" && path.startsWith("/progress")));
 
   return (
     <>
@@ -110,7 +110,7 @@ export function Nav() {
               >
                 {isActive(href) && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", damping: 30, stiffness: 400 }} />}
                 <Icon size={16} className="relative" />
-                <span className="relative hidden lg:inline">{label}</span>
+                <span className="relative">{label}</span>
                 {href === "/review" && due > 0 && (
                   <span className="relative rounded-full bg-accent px-1.5 text-[11px] font-semibold leading-5 text-accent-ink">{due}</span>
                 )}

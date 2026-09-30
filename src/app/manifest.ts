@@ -18,7 +18,8 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Speak", url: "/speak", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Sounds", url: "/sounds", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Grammar", url: "/grammar", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Pronounce", url: "/pronounce", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "Review", url: "/review", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
   };

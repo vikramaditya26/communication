@@ -90,6 +90,7 @@ export type CoachTasks = {
   };
   retell: { input: { text: string; transcript: string; book: string }; output: RetellFeedback };
   topic: { input: { topic: string; transcript: string; seconds: number }; output: TopicFeedback };
+  translate: { input: { paragraphs: string[]; book: string }; output: { paragraphs: string[] } };
   grammar: { input: { lesson: string; goal: string; task: string; transcript: string }; output: GrammarFeedback };
   chat: { input: { character: string; persona: string; book: string; history: ChatTurn[]; message: string }; output: ChatReply };
 };

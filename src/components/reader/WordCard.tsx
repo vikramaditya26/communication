@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Check, Clock, Ear, Lightbulb, Mic, Volume2, X } from "lucide-react";
+import { Check, Clock, Ear, Headphones, Lightbulb, Mic, Volume2, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCoach } from "@/lib/coach-client";
@@ -21,21 +21,24 @@ type Props = {
   page: number;
   voice: string | null;
   onClose: () => void;
+  /** Read the page out loud, or start reading aloud yourself, from this word. */
+  onListenFrom?: (index: number) => void;
+  onReadFrom?: (index: number) => void;
 };
 
-export function WordCard({ token, heardAs, anchor, book, page, voice, onClose }: Props) {
+export function WordCard({ token, heardAs, anchor, book, page, voice, onClose, onListenFrom, onReadFrom }: Props) {
   const desktop = useMediaQuery("(min-width: 1024px)");
   if (!desktop) {
     return (
       <Sheet open={Boolean(token)} onClose={onClose}>
-        {token && <WordHelp token={token} heardAs={heardAs} book={book} page={page} voice={voice} />}
+        {token && <WordHelp token={token} heardAs={heardAs} book={book} page={page} voice={voice} onListenFrom={onListenFrom} onReadFrom={onReadFrom} />}
       </Sheet>
     );
   }
   return (
     <AnimatePresence>
       {token && anchor && <Popover key={token.i} anchor={anchor} onClose={onClose}>
-        <WordHelp token={token} heardAs={heardAs} book={book} page={page} voice={voice} onClose={onClose} />
+        <WordHelp token={token} heardAs={heardAs} book={book} page={page} voice={voice} onClose={onClose} onListenFrom={onListenFrom} onReadFrom={onReadFrom} />
       </Popover>}
     </AnimatePresence>
   );
@@ -90,7 +93,25 @@ function playWord(word: string, dict: DictEntry | null, voice: string | null, sl
   } else speak(word, { voice, rate: slow ? 0.5 : 0.9 });
 }
 
-function WordHelp({ token, heardAs, book, page, voice, onClose }: { token: Token; heardAs?: string; book: LibraryBook; page: number; voice: string | null; onClose?: () => void }) {
+function WordHelp({
+  token,
+  heardAs,
+  book,
+  page,
+  voice,
+  onClose,
+  onListenFrom,
+  onReadFrom,
+}: {
+  token: Token;
+  heardAs?: string;
+  book: LibraryBook;
+  page: number;
+  voice: string | null;
+  onClose?: () => void;
+  onListenFrom?: (index: number) => void;
+  onReadFrom?: (index: number) => void;
+}) {
   const word = token.clean || token.text;
   const [found, setFound] = useState<{ word: string; entry: DictEntry | null } | null>(null);
   const dict = found?.word === word ? found.entry : null;
@@ -136,6 +157,20 @@ function WordHelp({ token, heardAs, book, page, voice, onClose }: { token: Token
         </button>
         <SayItCheck word={word} />
       </div>
+      {(onListenFrom || onReadFrom) && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          {onListenFrom && (
+            <button onClick={() => onListenFrom(token.i)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-ink/5 px-3.5 text-[13px] font-medium text-ink-2 hover:text-ink active:scale-95">
+              <Headphones size={14} /> Listen from here
+            </button>
+          )}
+          {onReadFrom && (
+            <button onClick={() => onReadFrom(token.i)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-ink/5 px-3.5 text-[13px] font-medium text-ink-2 hover:text-ink active:scale-95">
+              <Mic size={14} /> Read from here
+            </button>
+          )}
+        </div>
+      )}
 
       {heardAs && heardAs !== "__unread" && (
         <div className="mt-4 flex items-center gap-2 rounded-2xl bg-bad-soft px-3.5 py-2.5 text-sm">

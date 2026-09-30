@@ -32,7 +32,8 @@ export function useInstallPrompt() {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => deferred !== null,
+    // Never offer to install from inside the installed app.
+    () => deferred !== null && !window.matchMedia("(display-mode: standalone)").matches,
     () => false,
   );
   const install = async () => {

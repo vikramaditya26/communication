@@ -1,12 +1,12 @@
 "use client";
 
 import clsx from "clsx";
-import { AudioLines, Bookmark, Headphones, RotateCcw, Sparkles } from "lucide-react";
+import { AudioLines, Bookmark, Headphones, RotateCcw, SkipForward, Sparkles, Square } from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CoachTasks } from "@/lib/coach";
 import { useCoach } from "@/lib/coach-client";
-import { alignReading, normalizeWord, type WordMark } from "@/lib/speech";
+import { countHeard, followReading, normalizeWord, type Jump, type WordMark } from "@/lib/speech";
 import { bumpToday, logAttempt, recordingKey, recordMisses, saveItem, write, type Recording } from "@/lib/store";
 import { formatClock, useSpeechCapture } from "@/lib/useSpeechCapture";
 import type { LibraryBook } from "@/lib/types";
@@ -41,17 +41,20 @@ export function useReadAloud({
 }) {
   const expected = useMemo(() => (model ? model.tokens.map((t) => (t.heading ? "" : t.text)) : []), [model]);
   const [capPage, setCapPage] = useState<number | null>(null);
-  const latest = useRef({ book, page, expected, onFinish });
+  // Where this attempt started, and the places the learner tapped to jump to while reading.
+  const [startAt, setStartAt] = useState(0);
+  const [jumps, setJumps] = useState<Jump[]>([]);
+  const latest = useRef({ book, page, expected, onFinish, startAt, jumps });
   useEffect(() => {
-    latest.current = { book, page, expected, onFinish };
+    latest.current = { book, page, expected, onFinish, startAt, jumps };
   });
 
   const cap = useSpeechCapture({
     saveAudio,
     onFinish: ({ transcript, elapsed, audio }) => {
-      const { book, page, expected, onFinish } = latest.current;
+      const { book, page, expected, onFinish, startAt, jumps } = latest.current;
       if (transcript) {
-        const marks = alignReading(expected, transcript);
+        const { marks } = followReading(expected, transcript, { start: startAt, jumps });
         const { counted, accuracy } = accuracyOf(marks, expected);
         const score = Math.round(accuracy);
         const id = `${Date.now()}`;
@@ -88,15 +91,34 @@ export function useReadAloud({
   const tipsCoach = useCoach("reading", tips && tips.page === page ? tips.input : null, { auto: true });
   const [savedFor, setSavedFor] = useState<number | null>(null);
 
-  const start = useCallback(() => {
-    setCapPage(page);
-    setTips(null);
-    setSavedFor(null);
-    capStart();
-  }, [page, capStart]);
+  /** Starts listening. `from` is the word to begin at (the top of the page if left out). */
+  const start = useCallback(
+    (from?: number) => {
+      setCapPage(page);
+      setStartAt(typeof from === "number" ? from : 0);
+      setJumps([]);
+      setTips(null);
+      setSavedFor(null);
+      capStart();
+    },
+    [page, capStart],
+  );
 
-  /** Word colours, live while reading and final afterwards. */
-  const marks = useMemo(() => (state === "idle" || !heard || !expected.length ? null : alignReading(expected, heard)), [state, heard, expected]);
+  /** Word colours and the next word to read: live while reading, final afterwards. */
+  const follow = useMemo(
+    () => (state === "idle" || !expected.length ? null : followReading(expected, heard, { start: startAt, jumps })),
+    [state, heard, expected, startAt, jumps],
+  );
+  const marks = follow && heard ? follow.marks : null;
+  const busy = state === "listening" || state === "stopping";
+  const next = busy && follow ? follow.pos : null;
+
+  /** Moves the reader to a word the learner tapped. */
+  const jump = useCallback((to: number) => setJumps((list) => [...list, { at: countHeard(heard), to }]), [heard]);
+  /** Gives up on the current word and moves to the one after it. */
+  const skip = useCallback(() => {
+    if (follow) setJumps((list) => [...list, { at: countHeard(heard), to: follow.pos + 1 }]);
+  }, [follow, heard]);
 
   const result = useMemo(() => {
     if (state !== "done" || !model || !marks) return null;
@@ -153,6 +175,10 @@ export function useReadAloud({
     start,
     stop,
     reset,
+    jump,
+    skip,
+    next,
+    nextWord: next !== null && model ? (model.tokens[next]?.clean ?? "") : "",
     marks,
     result,
     tips: tipsCoach,
@@ -177,6 +203,9 @@ export function ReadAloudBar({ ra }: { ra: ReadAloud }) {
         </div>
         <div className="truncate text-xs text-ink-3">{cap.interim || cap.transcript.split(" ").slice(-8).join(" ") || "Start reading the page aloud"}</div>
       </div>
+      <button onClick={ra.skip} className="flex h-10 shrink-0 items-center gap-1 rounded-full border border-line px-3 text-xs font-medium text-ink-2 active:bg-ink/5" aria-label="Skip this word">
+        <SkipForward size={14} /> Skip
+      </button>
       <div className="text-right text-xs tabular-nums text-ink-3">
         <div className="font-display text-lg leading-none text-good">{ra.matched}</div>
         of {ra.total}
@@ -185,9 +214,23 @@ export function ReadAloudBar({ ra }: { ra: ReadAloud }) {
   );
 }
 
-export function ReadAloudBody({ ra, onPickWord, onListen, onStart }: { ra: ReadAloud; onPickWord: (index: number) => void; onListen: () => void; onStart?: () => void }) {
+export function ReadAloudBody({
+  ra,
+  onPickWord,
+  onListen,
+  onStart,
+  hearing,
+  onStopHearing,
+}: {
+  ra: ReadAloud;
+  onPickWord: (index: number) => void;
+  onListen: () => void;
+  onStart?: () => void;
+  hearing?: boolean;
+  onStopHearing?: () => void;
+}) {
   const { cap, result, tips, state } = ra;
-  const start = onStart ?? ra.start;
+  const start = onStart ?? (() => ra.start());
 
   if (state === "listening" || state === "stopping") {
     return (
@@ -198,7 +241,18 @@ export function ReadAloudBody({ ra, onPickWord, onListen, onStart }: { ra: ReadA
           <b className="text-good">{ra.matched}</b> of {ra.total} words heard clearly
         </div>
         <div className="mt-5 min-h-12 max-w-sm text-sm italic text-ink-2">{cap.interim || cap.transcript.split(" ").slice(-14).join(" ")}</div>
-        <p className="mt-4 text-xs text-ink-3">Press stop when you finish the page.</p>
+        {ra.nextWord && (
+          <div className="mt-2 flex items-center gap-3 rounded-full border border-line py-1.5 pl-4 pr-1.5 text-sm">
+            <span className="text-ink-3">Next word</span>
+            <b className="font-display text-lg">{ra.nextWord}</b>
+            <Button size="sm" variant="soft" icon={<SkipForward size={14} />} onClick={ra.skip}>
+              Skip
+            </Button>
+          </div>
+        )}
+        <p className="mt-4 max-w-xs text-xs leading-relaxed text-ink-3">
+          A word that stays red won’t hold you back: keep reading and the page follows. Say a red word again to fix it, or tap any word on the page to continue from there. Press stop when you finish.
+        </p>
       </div>
     );
   }
@@ -336,11 +390,20 @@ export function ReadAloudBody({ ra, onPickWord, onListen, onStart }: { ra: ReadA
         </p>
         <div className="mt-5 flex items-center gap-4">
           <MicButton state={state} onStart={start} onStop={ra.stop} />
-          <Button variant="ghost" icon={<Headphones size={16} />} onClick={onListen}>
-            Hear it first
-          </Button>
+          {hearing ? (
+            <Button variant="outline" icon={<Square size={13} fill="currentColor" />} onClick={onStopHearing}>
+              Stop listening
+            </Button>
+          ) : (
+            <Button variant="ghost" icon={<Headphones size={16} />} onClick={onListen}>
+              Hear it first
+            </Button>
+          )}
         </div>
       </div>
+      <p className="mt-4 text-xs leading-relaxed text-ink-3">
+        To start in the middle of the page, tap a word and choose <b>Read from here</b> or <b>Listen from here</b>.
+      </p>
       <p className="mt-4 text-xs leading-relaxed text-ink-3">Works best in Google Chrome, in a quiet room, with the phone or laptop close to you.</p>
     </div>
   );

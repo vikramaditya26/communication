@@ -1,17 +1,20 @@
 "use client";
 
 import clsx from "clsx";
-import { ArrowLeft, AudioLines, Bookmark, ChevronLeft, ChevronRight, Headphones, List, MessageSquareText, Mic, Repeat, Sparkles, Square, Type, Volume2 } from "lucide-react";
+import { ArrowLeft, AudioLines, Bookmark, ChevronLeft, ChevronRight, Headphones, Languages, List, MessageSquareText, Mic, Repeat, Sparkles, Square, Type, Volume2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCoach } from "@/lib/coach-client";
 import { useReaderSettings } from "@/lib/readerSettings";
-import { loadVoices, speak, stopSpeaking } from "@/lib/speech";
+import { speak } from "@/lib/speech";
 import { bumpToday, progressKey, saveItem, useStored, useStoredList, write, type Progress, type SavedItem } from "@/lib/store";
-import { pageText as blocksToText, type LibraryBook } from "@/lib/types";
+import { blockText, pageText as blocksToText, type LibraryBook, type Page } from "@/lib/types";
 import { useBook } from "@/lib/useBook";
 import { IconButton, Sheet, Skeleton, useMediaQuery } from "../ui";
+import { CoachNotice } from "../coach/Feedback";
 import { ExplainPanel } from "./ExplainPanel";
+import { ListenBar, usePageAudio } from "./PageAudio";
 import { buildPageModel, PageText } from "./PageText";
 import { ReadAloudBar, ReadAloudBody, useReadAloud } from "./ReadAloudPanel";
 import { SettingsSheet, TocSheet } from "./ReaderSheets";
@@ -26,7 +29,6 @@ const TABS: { id: Tab; label: string; icon: typeof Sparkles }[] = [
   { id: "shadow", label: "Shadow", icon: Repeat },
   { id: "retell", label: "Retell", icon: MessageSquareText },
 ];
-const SENTENCE_END = /[.!?;:]["”’)\]]*$/;
 
 export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: number | null }) {
   const [settings, updateSettings] = useReaderSettings();
@@ -52,9 +54,13 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
   const [mobilePanel, setMobilePanel] = useState<Tab | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [speaking, setSpeaking] = useState<{ from: number; to: number; word: number | null } | null>(null);
+  const [hindi, setHindi] = useState(false);
   const articleRef = useRef<HTMLElement>(null);
-  const stopListen = useRef<() => void>(() => {});
+  const audio = usePageAudio({ model, rate: settings.rate, voice: settings.voice });
+
+  // Hindi: the whole page is translated once, then kept on this device.
+  const translateInput = useMemo(() => (hindi && current ? { paragraphs: current.blocks.map(blockText), book: `${book.title} by ${book.author}` } : null), [hindi, current, book]);
+  const translation = useCoach("translate", translateInput, { auto: true });
 
   const [savedWordList] = useStoredList<SavedItem>("saved:word-");
   const savedWords = useMemo(() => new Set(savedWordList.map((s) => s.text.toLowerCase())), [savedWordList]);
@@ -73,15 +79,17 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
   const listening = ra.state === "listening" || ra.state === "stopping";
 
   // Karaoke: while reading aloud, the next word to say glows and the page follows along.
-  const cursor = useMemo(() => {
-    if (!listening || !model) return null;
-    let next = 0;
-    ra.marks?.forEach((m, i) => {
-      if (m.mark === "good" && m.heard !== "__unread") next = i + 1;
-    });
-    while (next < model.tokens.length && (model.tokens[next].heading || !model.tokens[next].clean)) next++;
-    return next < model.tokens.length ? next : null;
-  }, [listening, model, ra.marks]);
+  const cursor = listening && model && ra.next !== null && ra.next < model.tokens.length ? ra.next : null;
+
+  // While the page is read out, keep the sentence being spoken in view.
+  const spokenFrom = audio.highlight?.from ?? null;
+  useEffect(() => {
+    if (spokenFrom === null) return;
+    const el = articleRef.current?.querySelector<HTMLElement>(`[data-i="${spokenFrom}"]`);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    if (r.bottom > window.innerHeight * 0.7 || r.top < 90) window.scrollBy({ top: r.top - window.innerHeight * 0.3, behavior: "smooth" });
+  }, [spokenFrom]);
 
   useEffect(() => {
     if (cursor === null) return;
@@ -109,7 +117,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
       if (!index || pageNum === null || listening) return;
       const next = Math.max(0, Math.min(index.pages - 1, n));
       if (next === pageNum) return;
-      stopListen.current();
+      audio.stop();
       sh.stop();
       setDirection(next > pageNum ? 1 : -1);
       setChosenPage(next);
@@ -118,7 +126,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
       setExplainSel(null);
       window.scrollTo(0, 0);
     },
-    [index, pageNum, listening, sh],
+    [index, pageNum, listening, sh, audio],
   );
 
   useEffect(() => {
@@ -154,55 +162,28 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
     };
   }, []);
 
-  useEffect(() => () => stopListen.current(), []);
+  /** Reads the page out loud from this word (from the top if left out). */
+  const listenFrom = (i = 0) => {
+    setHindi(false);
+    setActive(null);
+    sh.stop();
+    if (listening) ra.stop();
+    audio.start(i);
+  };
+  const listenToPage = () => listenFrom(0);
 
-  const listenToPage = useCallback(() => {
-    if (!model) return;
-    stopListen.current();
-    const tokens = model.tokens;
-    const chunks: [number, number][] = [];
-    let start = 0;
-    for (let k = 0; k < tokens.length; k++) {
-      const headingEnds = tokens[k].heading && !tokens[k + 1]?.heading;
-      if ((SENTENCE_END.test(tokens[k].text) && k - start >= 2) || k - start >= 30 || k === tokens.length - 1 || headingEnds) {
-        chunks.push([start, k]);
-        start = k + 1;
-      }
-    }
-    let cancelled = false;
-    const play = (c: number) => {
-      if (cancelled || c >= chunks.length) return setSpeaking(null);
-      const [a, b] = chunks[c];
-      let str = "";
-      const offsets: number[] = [];
-      for (let k = a; k <= b; k++) {
-        offsets.push(str.length);
-        str += tokens[k].text + " ";
-      }
-      setSpeaking({ from: a, to: b, word: null });
-      speak(str, {
-        rate: settings.rate,
-        voice: settings.voice,
-        onWord: (ci) => {
-          let idx = 0;
-          while (idx + 1 < offsets.length && offsets[idx + 1] <= ci) idx++;
-          setSpeaking({ from: a, to: b, word: a + idx });
-        },
-        onEnd: () => play(c + 1),
-      });
-    };
-    stopListen.current = () => {
-      cancelled = true;
-      stopSpeaking();
-      setSpeaking(null);
-    };
-    loadVoices().then(() => play(0));
-  }, [model, settings.rate, settings.voice]);
-
-  const onWord = useCallback((i: number, rect: DOMRect) => {
-    setSelection(null);
-    setActive((cur) => (cur?.i === i ? null : { i, rect }));
-  }, []);
+  const { jump: raJump } = ra;
+  const { active: audioActive, start: audioStart } = audio;
+  const onWord = useCallback(
+    (i: number, rect: DOMRect) => {
+      setSelection(null);
+      // While reading aloud or listening, a tap moves to that word instead of opening its card.
+      if (listening) return raJump(i);
+      if (audioActive) return audioStart(i);
+      setActive((cur) => (cur?.i === i ? null : { i, rect }));
+    },
+    [listening, raJump, audioActive, audioStart],
+  );
   const closeWord = useCallback(() => setActive(null), []);
 
   const pickWord = useCallback(
@@ -230,15 +211,17 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
     if (!desktop) setMobilePanel("retell");
   };
 
-  const startReading = () => {
-    stopListen.current();
+  const startReading = (from?: number) => {
+    setHindi(false);
+    setActive(null);
+    audio.stop();
     sh.stop();
     setMobilePanel(null);
-    ra.start();
+    ra.start(from);
   };
 
   const startShadow = (i: number) => {
-    stopListen.current();
+    audio.stop();
     if (listening) ra.stop();
     sh.play(i);
   };
@@ -292,8 +275,22 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
               {pageNum + 1} / {index.pages}
             </span>
           )}
-          <IconButton label={speaking ? "Stop listening" : "Listen to this page"} active={Boolean(speaking)} onClick={() => (speaking ? stopListen.current() : listenToPage())}>
-            {speaking ? <Square size={15} fill="currentColor" /> : <Headphones size={19} />}
+          <IconButton label={audio.active ? "Stop listening" : "Listen to this page"} active={audio.active} onClick={() => (audio.active ? audio.stop() : listenToPage())}>
+            {audio.active ? <Square size={15} fill="currentColor" /> : <Headphones size={19} />}
+          </IconButton>
+          <IconButton
+            label={hindi ? "Show the page in English" : "Show the page in Hindi"}
+            active={hindi}
+            onClick={() => {
+              if (!hindi) {
+                audio.stop();
+                setActive(null);
+                setSelection(null);
+              }
+              setHindi(!hindi);
+            }}
+          >
+            <Languages size={19} />
           </IconButton>
           <IconButton label="Contents" onClick={() => setTocOpen(true)}>
             <List size={20} />
@@ -333,8 +330,16 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
                 exit={{ opacity: 0, x: -20 * direction }}
                 transition={{ duration: 0.18, ease: "easeOut" }}
               >
-                {model ? (
-                  <PageText model={model} marks={marks} activeIndex={active?.i ?? null} speaking={speaking ?? sh.highlight} cursor={cursor} savedWords={savedWords} onWord={onWord} />
+                {hindi && current ? (
+                  <HindiPage
+                    blocks={current.blocks}
+                    lines={translation.data?.paragraphs}
+                    loading={translation.loading}
+                    error={translation.error ? <CoachNotice error={translation.error} onRetry={() => translation.run()} /> : null}
+                    onEnglish={() => setHindi(false)}
+                  />
+                ) : model ? (
+                  <PageText model={model} marks={marks} activeIndex={active?.i ?? null} speaking={audio.highlight ?? sh.highlight} cursor={cursor} savedWords={savedWords} onWord={onWord} />
                 ) : (
                   <div className="space-y-4">
                     <Skeleton className="mx-auto h-8 w-1/2" />
@@ -390,7 +395,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
               <div className="min-h-0 flex-1 overflow-y-auto">
                 <div hidden={tab !== "explain"}>{explain}</div>
                 <div hidden={tab !== "read"}>
-                  <ReadAloudBody ra={ra} onPickWord={pickWord} onListen={listenToPage} />
+                  <ReadAloudBody ra={ra} onPickWord={pickWord} onListen={listenToPage} onStart={() => startReading()} hearing={audio.active} onStopHearing={audio.stop} />
                 </div>
                 <div hidden={tab !== "shadow"}>{shadow}</div>
                 <div hidden={tab !== "retell"}>{retell}</div>
@@ -408,6 +413,10 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
               <motion.div key="bar" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} className="mx-auto max-w-md">
                 <ReadAloudBar ra={ra} />
               </motion.div>
+            ) : audio.active ? (
+              <motion.div key="listen" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} className="mx-auto max-w-md">
+                <ListenBar audio={audio} />
+              </motion.div>
             ) : (
               <motion.div key="dock" initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }} className="mx-auto max-w-md">
                 {ra.result && mobilePanel !== "read" && (
@@ -422,7 +431,7 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
                   <button onClick={() => setMobilePanel("shadow")} className="flex h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[11px] font-medium text-ink-2 active:bg-ink/5">
                     <Repeat size={19} /> Shadow
                   </button>
-                  <motion.button whileTap={{ scale: 0.92 }} onClick={startReading} aria-label="Read this page aloud" className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft">
+                  <motion.button whileTap={{ scale: 0.92 }} onClick={() => startReading()} aria-label="Read this page aloud" className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft">
                     <Mic size={24} />
                   </motion.button>
                   <button onClick={() => setMobilePanel("retell")} className="flex h-12 flex-1 flex-col items-center justify-center gap-0.5 rounded-full text-[11px] font-medium text-ink-2 active:bg-ink/5">
@@ -444,11 +453,13 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
             <ReadAloudBody
               ra={ra}
               onPickWord={pickWord}
-              onStart={startReading}
+              onStart={() => startReading()}
               onListen={() => {
                 setMobilePanel(null);
                 listenToPage();
               }}
+              hearing={audio.active}
+              onStopHearing={audio.stop}
             />
           </Sheet>
           <Sheet
@@ -500,7 +511,15 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
         )}
       </AnimatePresence>
 
+      {desktop && audio.active && (
+        <div className="fixed bottom-6 left-[calc((100vw-420px)/2)] z-30 w-[min(26rem,calc(100vw-460px))] -translate-x-1/2">
+          <ListenBar audio={audio} />
+        </div>
+      )}
+
       <WordCard
+        onListenFrom={listenFrom}
+        onReadFrom={startReading}
         token={active && model ? (model.tokens[active.i] ?? null) : null}
         heardAs={activeMark?.mark === "bad" ? activeMark.heard : undefined}
         anchor={active?.rect ?? null}
@@ -511,6 +530,49 @@ export function Reader({ book, initialPage }: { book: LibraryBook; initialPage: 
       />
       <TocSheet open={tocOpen} onClose={() => setTocOpen(false)} index={index} current={pageNum ?? 0} onGo={go} />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} settings={settings} update={updateSettings} />
+    </div>
+  );
+}
+
+/** The page in Hindi, laid out like the English one. */
+function HindiPage({ blocks, lines, loading, error, onEnglish }: { blocks: Page; lines?: string[]; loading: boolean; error: React.ReactNode; onEnglish: () => void }) {
+  return (
+    <div lang="hi">
+      <div className="mb-6 flex items-center justify-between gap-3 rounded-full bg-accent-soft py-1.5 pl-4 pr-1.5 font-sans text-sm text-accent">
+        <span className="flex items-center gap-2">
+          <Languages size={16} /> हिंदी अनुवाद
+        </span>
+        <button onClick={onEnglish} className="rounded-full bg-card px-3 py-1.5 text-[13px] font-medium text-ink shadow-soft active:scale-95">
+          Back to English
+        </button>
+      </div>
+      {error ? (
+        <div className="font-sans">{error}</div>
+      ) : loading || !lines ? (
+        <div className="space-y-4">
+          <p className="font-sans text-sm text-ink-3">Translating this page to Hindi…</p>
+          {Array.from({ length: 8 }, (_, i) => (
+            <Skeleton key={i} className={clsx("h-5", i % 3 === 2 ? "w-3/4" : "w-full")} />
+          ))}
+        </div>
+      ) : (
+        // If the count doesn't match the page, show the translation as plain paragraphs.
+        (lines.length === blocks.length ? blocks : lines.map((): Page[number] => ({ p: "" }))).map((b, i) => {
+          const text = lines[i] ?? "";
+          if ("h" in b) {
+            return (
+              <h2 key={i} className={clsx("text-balance text-center font-semibold", b.l <= 2 ? "mb-8 mt-4 text-[1.4em] leading-snug" : "mb-6 mt-4 text-[1.2em] leading-snug")}>
+                {text}
+              </h2>
+            );
+          }
+          return (
+            <p key={i} className={clsx("mb-[1em] leading-[1.95]", "v" in b && "whitespace-pre-line border-l-2 border-accent/25 pl-[0.9em]")}>
+              {text}
+            </p>
+          );
+        })
+      )}
     </div>
   );
 }

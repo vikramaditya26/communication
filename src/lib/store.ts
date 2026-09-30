@@ -35,7 +35,8 @@ export async function markLegacy() {
 
 /** Applies a value that came from another device, keeping its timestamp. */
 export async function applyRemote(key: string, value: unknown, change: Change) {
-  if (change.deleted) await del(key, db());
+  // A change with no value is a deletion too (an empty record would break the pages that list it).
+  if (change.deleted || value === undefined || value === null) await del(key, db());
   else await set(key, value, db());
   await set(key, { ...change, remote: true }, metaDb());
   emit(key);
@@ -78,12 +79,13 @@ export async function remove(key: string) {
 
 export async function readEntries<T>(prefix: string): Promise<[string, T][]> {
   const all = await entries<string, T>(db());
-  return all.filter(([k]) => typeof k === "string" && k.startsWith(prefix));
+  // Empty records are skipped, so one bad entry can never break a page.
+  return all.filter(([k, v]) => typeof k === "string" && k.startsWith(prefix) && v !== undefined && v !== null);
 }
 
 export async function readPrefix<T>(prefix: string): Promise<T[]> {
   const all = await entries<string, T>(db());
-  return all.filter(([k]) => typeof k === "string" && k.startsWith(prefix)).map(([, v]) => v);
+  return all.filter(([k, v]) => typeof k === "string" && k.startsWith(prefix) && v !== undefined && v !== null).map(([, v]) => v);
 }
 
 /** Live value of one key; re-renders when anything writes that key. */

@@ -31,6 +31,12 @@ const correction = obj({ youSaid: str("the learner's exact words"), better: str(
 const betterWord = obj({ instead: str("word or phrase the learner used"), try: str("a better or more natural choice"), why: str("one short reason") });
 
 const TASKS: Record<CoachTask, TaskDef> = {
+  translate: {
+    effort: "low",
+    instructions:
+      "Translate this page of the book into Hindi, written in Devanagari script. `paragraphs` holds the page's headings and paragraphs in order: return exactly the same number of items in the same order, each one the Hindi translation of the matching item. Use clear, natural, everyday Hindi that is easy to read (not heavy Sanskrit words). Keep the meaning and the tone of the author. Write names of people and places in Devanagari. Keep line breaks inside an item (poems). Do not add notes or explanations, and do not leave any item in English.",
+    schema: obj({ paragraphs: arr(str(), "the Hindi translation of each input item, same order and same count") }),
+  },
   grammar: {
     effort: "low",
     instructions:

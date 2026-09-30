@@ -33,9 +33,24 @@ const canonical = (w: string) =>
     .replace(/ll(ed|ing|er)$/, "l$1")
     .replace(/'/g, "");
 
+// Words that sound the same. The recogniser picks one at random, so they are never a mistake.
+const HOMOPHONES = [
+  "to too two", "there their theyre", "for four fore", "your youre", "its", "no know", "right write", "here hear", "one won", "by buy bye",
+  "see sea", "would wood", "which witch", "whole hole", "new knew", "our hour", "be bee", "son sun", "i eye", "ate eight", "through threw",
+  "week weak", "peace piece", "wait weight", "weather whether", "where wear", "were whir", "then than", "of off", "who whom", "an and",
+  "role roll", "sight site", "soul sole", "tale tail", "way weigh", "made maid", "meet meat", "plain plane", "rain reign", "red read",
+  "road rode", "sail sale", "seen scene", "some sum", "steal steel", "wave waive", "heard herd", "night knight", "not knot", "o oh",
+  "thou though", "thee the", "thy the", "ere air", "hath has", "doth does", "shall shell", "whose whos", "led lead", "passed past",
+].flatMap((group) => {
+  const words = group.split(" ");
+  return words.map((w) => [w, words] as const);
+});
+const SOUNDS_LIKE = new Map<string, readonly string[]>(HOMOPHONES);
+
 function similar(a: string, b: string) {
   if (a === b) return true;
   if (NUMBERS[a] === b || NUMBERS[b] === a) return true;
+  if (SOUNDS_LIKE.get(a.replace(/'/g, ""))?.includes(b.replace(/'/g, ""))) return true;
   const x = canonical(a), y = canonical(b);
   if (x === y) return true;
   // Only forgive a different ending ("walk"/"walks"/"walked"). A different sound inside
@@ -97,6 +112,110 @@ export function alignReading(expected: string[], heardText: string): WordMark[] 
   return marks.map((mk, idx) => (idx > lastHeard ? { mark: "skip", heard: "__unread" } : mk));
 }
 
+/** How many real words are in a piece of heard text (used to remember where a jump happened). */
+export const countHeard = (heardText: string) => heardText.split(/\s+/).map(normalizeWord).filter(Boolean).length;
+
+export type Jump = { at: number; to: number };
+
+/**
+ * Follows a learner reading a page aloud, word by word, and always moves forward.
+ *
+ * - A heard word is matched with the next few words on the page, so one wrong word never blocks the rest.
+ * - If three heard words in a row match nothing, the word being attempted is marked red and the reader moves on.
+ * - Saying an earlier red or missed word again, correctly, turns it green.
+ * - `start` is the word to begin at; `jumps` move the reader when they tap a word (after `at` heard words, go to word `to`).
+ *
+ * Returns one mark per word on the page, and `pos`: the next word to read.
+ */
+export function followReading(expected: string[], heardText: string, opts: { start?: number; jumps?: Jump[] } = {}): { marks: WordMark[]; pos: number } {
+  const E = expected.map(normalizeWord);
+  const H = heardText.split(/\s+/).map(normalizeWord).filter(Boolean);
+  const n = E.length;
+  const marks: WordMark[] = Array.from({ length: n }, () => ({ mark: "skip", heard: "__unread" }) as WordMark);
+  const real = (i: number) => {
+    while (i < n && !E[i]) i++;
+    return i;
+  };
+  const jumps = [...(opts.jumps ?? [])].sort((a, b) => a.at - b.at);
+  let jumped = 0;
+  let pos = real(opts.start ?? 0);
+  let pending: string[] = [];
+  // Heard words up to here are getting a second look after a forced move; they don't count towards the next one.
+  let secondLook = -1;
+  let fresh = 0;
+
+  for (let j = 0; j <= H.length; j++) {
+    while (jumped < jumps.length && jumps[jumped].at <= j) {
+      pos = real(jumps[jumped++].to);
+      pending = [];
+      fresh = 0;
+    }
+    if (j === H.length || pos >= n) break;
+    const h = H[j];
+
+    // Look at the word we are waiting for, then a few words ahead (short words like "the" are everywhere, so only one ahead).
+    const reach = h.length <= 3 ? (pending.length ? 3 : 1) : 5;
+    let found = -1;
+    let usedTwoHeard = false;
+    let usedTwoExpected = false;
+    for (let k = pos, step = 0; k < n && step <= reach; k = real(k + 1), step++) {
+      const next = real(k + 1);
+      // "every one" heard for "everyone", or "cannot" heard for "can not".
+      usedTwoHeard = !similar(E[k], h) && j + 1 < H.length && E[k].length > 4 && similar(E[k], h + H[j + 1]);
+      usedTwoExpected = !similar(E[k], h) && !usedTwoHeard && next < n && h.length > 4 && similar(E[k] + E[next], h);
+      if (similar(E[k], h) || usedTwoHeard || usedTwoExpected) {
+        found = k;
+        break;
+      }
+    }
+
+    if (found >= 0) {
+      // Words jumped over: pair them with what was heard in between (red), or mark them as not heard (yellow).
+      for (let k = pos; k < found; k = real(k + 1)) marks[k] = pending.length ? { mark: "bad", heard: pending.shift() } : { mark: "skip" };
+      marks[found] = { mark: "good" };
+      let after = real(found + 1);
+      if (usedTwoExpected && after < n) {
+        marks[after] = { mark: "good" };
+        after = real(after + 1);
+      }
+      if (usedTwoHeard) j++;
+      pos = after;
+      pending = [];
+      fresh = 0;
+      continue;
+    }
+
+    // Said again: a word from the last couple of lines. If it was red or missed, it is fixed now.
+    let again = -1;
+    for (let k = pos - 1, step = 0; k >= 0 && step < 14; k--) {
+      if (!E[k]) continue;
+      step++;
+      if (similar(E[k], h)) {
+        again = k;
+        break;
+      }
+    }
+    if (again >= 0) {
+      if (marks[again].heard !== "__unread") marks[again] = { mark: "good" };
+      continue;
+    }
+
+    pending.push(h);
+    if (j > secondLook) fresh++;
+    if (fresh >= 3) {
+      // Three new words that match nothing: mark the word being tried and move on,
+      // then give the other heard words a second look from the new place.
+      marks[pos] = { mark: "bad", heard: pending[0] };
+      pos = real(pos + 1);
+      secondLook = j;
+      j -= pending.length - 1;
+      pending = [];
+      fresh = 0;
+    }
+  }
+  return { marks, pos: Math.min(pos, n) };
+}
+
 // ── Listening ────────────────────────────────────────────────────────
 
 type RecognitionResultList = ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
@@ -124,6 +243,21 @@ export type Listener = { stop: () => void };
  * Listens until stop() is called. Browsers end recognition after silence,
  * so this restarts it and keeps everything that was heard.
  */
+const plain = (t: string) => t.toLowerCase().replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim();
+
+/** Adds a newly heard piece to what was heard before, without repeating words the browser sent twice. */
+function joinHeard(before: string, piece: string) {
+  const a = plain(before);
+  const b = plain(piece);
+  if (!b) return before;
+  if (!a) return piece.trim();
+  // Android Chrome: each new result contains everything said so far.
+  if (b.startsWith(a)) return piece.trim();
+  // The same piece sent twice.
+  if (a === b || a.endsWith(" " + b)) return before;
+  return `${before} ${piece.trim()}`;
+}
+
 export function listen(opts: {
   lang?: string;
   onText: (finalText: string, interim: string) => void;
@@ -144,15 +278,20 @@ export function listen(opts: {
     rec.continuous = true;
     rec.interimResults = true;
     let sessionFinal = "";
+    let sessionInterim = "";
     rec.onresult = (e) => {
       let interim = "";
       sessionFinal = "";
       for (let k = 0; k < e.results.length; k++) {
         const r = e.results[k];
-        if (r.isFinal) sessionFinal += r[0].transcript + " ";
-        else interim += r[0].transcript + " ";
+        if (r.isFinal) sessionFinal = joinHeard(sessionFinal, r[0].transcript);
+        else interim = joinHeard(interim, r[0].transcript);
       }
-      opts.onText((finalText + sessionFinal).trim(), interim.trim());
+      // The words still being worked out sometimes repeat the finished ones; keep only the new part.
+      const done = plain(sessionFinal);
+      if (done && plain(interim).startsWith(done)) interim = plain(interim).slice(done.length);
+      sessionInterim = interim.trim();
+      opts.onText(`${finalText} ${sessionFinal}`.trim(), interim.trim());
     };
     rec.onerror = (e) => {
       if (e.error === "no-speech" || e.error === "aborted") return;
@@ -160,7 +299,8 @@ export function listen(opts: {
       opts.onError?.(e.error);
     };
     rec.onend = () => {
-      finalText = (finalText + sessionFinal).trim() + " ";
+      // Phones sometimes end a session without confirming the last words. Keep them anyway.
+      finalText = `${finalText} ${sessionFinal} ${sessionInterim}`.replace(/\s+/g, " ").trim() + " ";
       if (stopped) {
         opts.onText(finalText.trim(), "");
         opts.onEnd?.();
